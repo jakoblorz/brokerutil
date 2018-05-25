@@ -25,11 +25,31 @@ func (r RedisDriverPublisher) NotifyOnMessagePublish(msg interface{}) error {
 	return nil
 }
 
-type RedisDriver struct {
-	opts           *RedisDriverOptions
-	client         *redis.Client
-	subscriberHost *stream.SubscriberHost
+type RedisDriverSubscriber struct {
 	channel        *redis.PubSub
+	subscriberHost *stream.SubscriberHost
+}
+
+func (r RedisDriverSubscriber) AddSubscriber(fn func(interface{}) error) chan error {
+	return r.subscriberHost.AddSubscriber(fn)
+}
+
+func (r RedisDriverSubscriber) NotifyOnMessageRecieve(msg interface{}) error {
+	return r.subscriberHost.NotifyOnMessageRecieve(msg)
+}
+
+func (r RedisDriverSubscriber) NotifyOnStreamClose() error {
+	return r.subscriberHost.NotifyOnStreamClose()
+}
+
+func (r RedisDriverSubscriber) GetMessageChannel() (<-chan interface{}, error) {
+	return r.channel.Channel(), nil
+}
+
+type RedisDriver struct {
+	opts    *RedisDriverOptions
+	client  *redis.Client
+	channel *redis.PubSub
 }
 
 func NewRedisDriver(opts *RedisDriverOptions) (*RedisDriver, error) {
@@ -42,9 +62,8 @@ func NewRedisDriver(opts *RedisDriverOptions) (*RedisDriver, error) {
 	}
 
 	return &RedisDriver{
-		opts:           opts,
-		client:         client,
-		subscriberHost: stream.NewSubscriberHost(),
+		opts:   opts,
+		client: client,
 	}, nil
 }
 
@@ -63,5 +82,12 @@ func (r RedisDriver) Publisher() (stream.Publisher, error) {
 	return RedisDriverPublisher{
 		channel: r.opts.channel,
 		client:  r.client,
+	}, nil
+}
+
+func (r RedisDriver) Subscriber() (stream.Subscriber, error) {
+	return RedisDriverSubscriber{
+		channel:        r.channel,
+		subscriberHost: stream.NewSubscriberHost(),
 	}, nil
 }
