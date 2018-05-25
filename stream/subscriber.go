@@ -16,6 +16,12 @@ type SubscriberHost struct {
 	subscribers []SubscriberEntry
 }
 
+func NewSubscriberHost() *SubscriberHost {
+	return &SubscriberHost{
+		subscribers: make([]SubscriberEntry, 0),
+	}
+}
+
 func (s *SubscriberHost) NotifyOnMessageRecieve(msg interface{}) error {
 
 	for i, l := range s.subscribers {
