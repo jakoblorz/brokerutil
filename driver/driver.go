@@ -1,6 +1,6 @@
 package driver
 
-import "github.com/jakoblorz/singapoor/pubsub"
+import "github.com/jakoblorz/singapoor/stream"
 
 type Implementation interface {
 	Opener
@@ -18,9 +18,9 @@ type Closer interface {
 }
 
 type Publisher interface {
-	Publisher() (pubsub.Publisher, error)
+	Publisher() (stream.Publisher, error)
 }
 
 type Subscriber interface {
-	Subscriber() (pubsub.Subscriber, error)
+	Subscriber() (stream.Subscriber, error)
 }

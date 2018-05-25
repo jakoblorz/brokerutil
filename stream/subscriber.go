@@ -1,4 +1,4 @@
-package pubsub
+package stream
 
 type Subscriber interface {
 	AddSubscriber(fn func(interface{}) error) chan error
