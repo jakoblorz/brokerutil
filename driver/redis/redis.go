@@ -43,7 +43,21 @@ func (r RedisDriverSubscriber) NotifyOnStreamClose() error {
 }
 
 func (r RedisDriverSubscriber) GetMessageChannel() (<-chan interface{}, error) {
-	return r.channel.Channel(), nil
+
+	redisMsgChannel := r.channel.Channel()
+	var channel = make(chan interface{})
+
+	go func() {
+
+		var message *redis.Message
+
+		for {
+			message = <-redisMsgChannel
+			channel <- message.Payload
+		}
+	}()
+
+	return channel, nil
 }
 
 type RedisDriver struct {
