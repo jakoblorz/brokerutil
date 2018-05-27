@@ -1,6 +1,9 @@
 package loopback
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestPublisher_NotifyOnMessagePublish(t *testing.T) {
 
@@ -35,6 +38,16 @@ func TestPublisher_NotifyOnMessagePublish(t *testing.T) {
 			p := Publisher{
 				channel: tt.fields.channel,
 			}
+
+			go func() {
+
+				msg := <-p.channel
+
+				if eq := !reflect.DeepEqual(arg.msg, msg); eq != tt.wantErr {
+					t.Errorf("Publisher.NotifyOnMessagePublish() recieved message not equal to expected value, wantErr %v", tt.wantErr)
+				}
+			}()
+
 			if err := p.NotifyOnMessagePublish(tt.args.msg); (err != nil) != tt.wantErr {
 				t.Errorf("Publisher.NotifyOnMessagePublish() error = %v, wantErr %v", err, tt.wantErr)
 			}
