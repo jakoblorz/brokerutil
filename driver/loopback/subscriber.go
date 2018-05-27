@@ -1,0 +1,24 @@
+package loopback
+
+import "github.com/jakoblorz/singapoor/stream"
+
+type Subscriber struct {
+	channel chan interface{}
+	manager *stream.SubscriberHost
+}
+
+func (s Subscriber) GetMessageChannel() (<-chan interface{}, error) {
+	return s.channel, nil
+}
+
+func (s Subscriber) AddSubscriber(fn func(interface{}) error) chan error {
+	return s.manager.AddSubscriber(fn)
+}
+
+func (s Subscriber) NotifyOnMessageRecieve(msg interface{}) error {
+	return s.manager.NotifyOnMessageRecieve(msg)
+}
+
+func (s Subscriber) NotifyOnStreamClose() error {
+	return s.manager.NotifyOnStreamClose()
+}
