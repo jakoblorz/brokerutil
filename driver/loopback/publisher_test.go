@@ -39,6 +39,8 @@ func TestPublisher_NotifyOnMessagePublish(t *testing.T) {
 				channel: tt.fields.channel,
 			}
 
+			var sig = make(chan int)
+
 			go func() {
 
 				msg := <-p.channel
@@ -46,11 +48,15 @@ func TestPublisher_NotifyOnMessagePublish(t *testing.T) {
 				if eq := !reflect.DeepEqual(arg.msg, msg); eq != tt.wantErr {
 					t.Errorf("Publisher.NotifyOnMessagePublish() recieved message not equal to expected value, wantErr %v", tt.wantErr)
 				}
+
+				sig <- 1
 			}()
 
 			if err := p.NotifyOnMessagePublish(tt.args.msg); (err != nil) != tt.wantErr {
 				t.Errorf("Publisher.NotifyOnMessagePublish() error = %v, wantErr %v", err, tt.wantErr)
 			}
+
+			<-sig
 		})
 	}
 }
