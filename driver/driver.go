@@ -5,8 +5,8 @@ import "github.com/jakoblorz/singapoor/stream"
 type Type int
 
 const (
-	MultithreadDriver  Type = iota
-	SinglethreadDriver Type = iota
+	MultiThreadDriver  Type = iota
+	SingleThreadDriver Type = iota
 )
 
 type Scaffold interface {

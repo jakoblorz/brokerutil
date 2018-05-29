@@ -2,6 +2,7 @@ package redis
 
 import (
 	"github.com/go-redis/redis"
+	"github.com/jakoblorz/singapoor/driver"
 	"github.com/jakoblorz/singapoor/stream"
 )
 
@@ -27,21 +28,41 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) Open() error {
+func (d Driver) GetDriverType() driver.Type {
+	return driver.SingleThreadDriver
+}
+
+func (d Driver) NotifyStreamClose() error {
+	return d.channel.Close()
+}
+
+func (d Driver) NotifyStreamOpen() error {
 
 	d.channel = d.client.Subscribe(d.opts.channel)
 
 	return nil
 }
 
-func (d Driver) Close() error {
-	return d.channel.Close()
+func (d Driver) NotifyMessageTest() (bool, error) {
+	return true, nil
 }
 
-func (d Driver) Publisher() (stream.Publisher, error) {
-	return NewPublisher(d.client, d.opts.channel), nil
+func (d Driver) NotifyMessageRecieve() (stream.Message, error) {
+
+	msg, err := d.channel.ReceiveMessage()
+	if err != nil {
+		return nil, err
+	}
+
+	return stream.Message(msg.Payload), nil
 }
 
-func (d Driver) Subscriber() (stream.Subscriber, error) {
-	return NewSubscriber(d.channel), nil
+func (d Driver) NotifyMessagePublish(msg stream.Message) error {
+
+	err := d.client.Publish(d.opts.channel, msg)
+	if err != nil {
+		return err.Err()
+	}
+
+	return nil
 }

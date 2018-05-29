@@ -18,10 +18,10 @@ type StreamManager interface {
 func NewStreamManager(d driver.Scaffold) (StreamManager, error) {
 
 	switch d.GetDriverType() {
-	case driver.MultithreadDriver:
+	case driver.MultiThreadDriver:
 		return newMultiThreadStreamManager(d.(driver.MultiThreadScaffold))
 
-	case driver.SinglethreadDriver:
+	case driver.SingleThreadDriver:
 		return newSingleThreadStreamManager(d.(driver.SingleThreadScaffold))
 	}
 
