@@ -108,7 +108,7 @@ func (m *Controller) Subscribe(fn stream.SubscriberFunc) chan error {
 		return errChan
 	}
 
-	return sub.AddSubscriber(fn)
+	return sub.Subscribe(fn)
 }
 
 // BlockingSubscribe is the same as Subscribe only differing in the

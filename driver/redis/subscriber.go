@@ -35,8 +35,8 @@ func (s Subscriber) GetMessageChannel() (<-chan interface{}, error) {
 	return channelOutgoing, nil
 }
 
-func (s Subscriber) AddSubscriber(fn stream.SubscriberFunc) chan error {
-	return s.manager.AddSubscriber(fn)
+func (s Subscriber) Subscribe(fn stream.SubscriberFunc) chan error {
+	return s.manager.Subscribe(fn)
 }
 
 func (s Subscriber) NotifyOnMessageRecieve(msg interface{}) error {
