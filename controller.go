@@ -2,6 +2,7 @@ package singapoor
 
 import (
 	"github.com/jakoblorz/singapoor/driver"
+	"github.com/jakoblorz/singapoor/stream"
 )
 
 // Controller manages a drivers stream events
@@ -97,7 +98,7 @@ func (m *Controller) Publish(i interface{}) {
 
 // Subscribe adds a subscriber so that a specific function can
 // be invoked once a message was recieved
-func (m *Controller) Subscribe(fn func(interface{}) error) chan error {
+func (m *Controller) Subscribe(fn stream.SubscriberFunc) chan error {
 
 	errChan := make(chan error)
 
@@ -113,7 +114,7 @@ func (m *Controller) Subscribe(fn func(interface{}) error) chan error {
 // BlockingSubscribe is the same as Subscribe only differing in the
 // return value: it returns an error instead of an error channel so
 // that this method waits for a error thus being blocking
-func (m *Controller) BlockingSubscribe(fn func(interface{}) error) error {
+func (m *Controller) BlockingSubscribe(fn stream.SubscriberFunc) error {
 	channel := m.Subscribe(fn)
 	return <-channel
 }

@@ -1,24 +1,26 @@
 package stream
 
 type Subscriber interface {
-	AddSubscriber(fn func(interface{}) error) chan error
+	AddSubscriber(SubscriberFunc) chan error
 	GetMessageChannel() (<-chan interface{}, error)
 	NotifyOnMessageRecieve(interface{}) error
 	NotifyOnStreamClose() error
 }
 
-type SubscriberEntry struct {
+type SubscriberFunc func(interface{}) error
+
+type subscriberEntry struct {
 	sig chan error
-	fn  func(interface{}) error
+	fn  SubscriberFunc
 }
 
 type SubscriberManager struct {
-	subscribers []SubscriberEntry
+	subscribers []subscriberEntry
 }
 
 func NewSubscriberManager() *SubscriberManager {
 	return &SubscriberManager{
-		subscribers: make([]SubscriberEntry, 0),
+		subscribers: make([]subscriberEntry, 0),
 	}
 }
 
@@ -44,11 +46,11 @@ func (s *SubscriberManager) NotifyOnStreamClose() error {
 	return nil
 }
 
-func (s *SubscriberManager) AddSubscriber(fn func(interface{}) error) chan error {
+func (s *SubscriberManager) AddSubscriber(fn SubscriberFunc) chan error {
 
 	var sig = make(chan error)
 
-	s.subscribers = append(s.subscribers, SubscriberEntry{
+	s.subscribers = append(s.subscribers, subscriberEntry{
 		sig: sig,
 		fn:  fn,
 	})
