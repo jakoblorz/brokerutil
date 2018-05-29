@@ -39,15 +39,9 @@ func (d Driver) Close() error {
 }
 
 func (d Driver) Publisher() (stream.Publisher, error) {
-	return Publisher{
-		channel: d.opts.channel,
-		client:  d.client,
-	}, nil
+	return NewPublisher(d.client, d.opts.channel), nil
 }
 
 func (d Driver) Subscriber() (stream.Subscriber, error) {
-	return Subscriber{
-		channel: d.channel,
-		manager: stream.NewSubscriberHost(),
-	}, nil
+	return NewSubscriber(d.channel), nil
 }

@@ -4,7 +4,7 @@ import "github.com/jakoblorz/singapoor/stream"
 
 type Subscriber struct {
 	channel chan interface{}
-	manager *stream.SubscriberHost
+	manager *stream.SubscriberManager
 }
 
 func (s Subscriber) GetMessageChannel() (<-chan interface{}, error) {

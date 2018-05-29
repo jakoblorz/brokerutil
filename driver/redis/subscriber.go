@@ -7,7 +7,14 @@ import (
 
 type Subscriber struct {
 	channel *redis.PubSub
-	manager *stream.SubscriberHost
+	manager *stream.SubscriberManager
+}
+
+func NewSubscriber(channel *redis.PubSub) Subscriber {
+	return Subscriber{
+		channel: channel,
+		manager: stream.NewSubscriberManager(),
+	}
 }
 
 func (s Subscriber) GetMessageChannel() (<-chan interface{}, error) {

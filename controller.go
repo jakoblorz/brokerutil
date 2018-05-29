@@ -4,18 +4,18 @@ import (
 	"github.com/jakoblorz/singapoor/driver"
 )
 
-// Manager manages a drivers stream events
-type Manager struct {
+// Controller manages a drivers stream events
+type Controller struct {
 	driver  driver.Implementation
 	sigTerm chan int
 	backlog chan interface{}
 }
 
-// NewManager creates a new singapoor stream manager based on the given
+// NewController creates a new singapoor stream manager based on the given
 // driver implementation
-func NewManager(d driver.Implementation) (*Manager, error) {
+func NewController(d driver.Implementation) (*Controller, error) {
 
-	m := &Manager{
+	m := &Controller{
 		driver: d,
 
 		sigTerm: make(chan int),
@@ -27,13 +27,13 @@ func NewManager(d driver.Implementation) (*Manager, error) {
 
 // Open initializes the driver so that the driver can instantiate
 // message channels and connections
-func (m *Manager) Open() error {
+func (m *Controller) Open() error {
 	return m.driver.Open()
 }
 
 // Run starts a for { } loop which merges all stream actions such as
 // publishing, notifying subscribers etc
-func (m *Manager) Run() error {
+func (m *Controller) Run() error {
 
 	subscriber, err := m.driver.Subscriber()
 	if err != nil {
@@ -82,7 +82,7 @@ func (m *Manager) Run() error {
 
 // Close signals the Run() loop to stop and closed the drivers
 // interface
-func (m *Manager) Close() error {
+func (m *Controller) Close() error {
 	m.sigTerm <- 1
 
 	return m.driver.Close()
@@ -91,13 +91,13 @@ func (m *Manager) Close() error {
 // Publish adds a new message to the backlog so that the node can
 // communicate that message to the others using the drivers
 // interface
-func (m *Manager) Publish(i interface{}) {
+func (m *Controller) Publish(i interface{}) {
 	m.backlog <- i
 }
 
 // Subscribe adds a subscriber so that a specific function can
 // be invoked once a message was recieved
-func (m *Manager) Subscribe(fn func(interface{}) error) chan error {
+func (m *Controller) Subscribe(fn func(interface{}) error) chan error {
 
 	errChan := make(chan error)
 
@@ -113,11 +113,11 @@ func (m *Manager) Subscribe(fn func(interface{}) error) chan error {
 // BlockingSubscribe is the same as Subscribe only differing in the
 // return value: it returns an error instead of an error channel so
 // that this method waits for a error thus being blocking
-func (m *Manager) BlockingSubscribe(fn func(interface{}) error) error {
+func (m *Controller) BlockingSubscribe(fn func(interface{}) error) error {
 	channel := m.Subscribe(fn)
 	return <-channel
 }
 
-func (m *Manager) Driver() driver.Implementation {
+func (m *Controller) Driver() driver.Implementation {
 	return m.driver
 }

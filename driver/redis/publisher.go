@@ -7,6 +7,13 @@ type Publisher struct {
 	channel string
 }
 
+func NewPublisher(client *redis.Client, channel string) Publisher {
+	return Publisher{
+		client:  client,
+		channel: channel,
+	}
+}
+
 func (p Publisher) NotifyOnMessagePublish(msg interface{}) error {
 
 	err := p.client.Publish(p.channel, msg)

@@ -12,17 +12,17 @@ type SubscriberEntry struct {
 	fn  func(interface{}) error
 }
 
-type SubscriberHost struct {
+type SubscriberManager struct {
 	subscribers []SubscriberEntry
 }
 
-func NewSubscriberHost() *SubscriberHost {
-	return &SubscriberHost{
+func NewSubscriberManager() *SubscriberManager {
+	return &SubscriberManager{
 		subscribers: make([]SubscriberEntry, 0),
 	}
 }
 
-func (s *SubscriberHost) NotifyOnMessageRecieve(msg interface{}) error {
+func (s *SubscriberManager) NotifyOnMessageRecieve(msg interface{}) error {
 
 	for i, l := range s.subscribers {
 
@@ -38,13 +38,13 @@ func (s *SubscriberHost) NotifyOnMessageRecieve(msg interface{}) error {
 	return nil
 }
 
-func (s *SubscriberHost) NotifyOnStreamClose() error {
+func (s *SubscriberManager) NotifyOnStreamClose() error {
 	s.UnsubscribeAll()
 
 	return nil
 }
 
-func (s *SubscriberHost) AddSubscriber(fn func(interface{}) error) chan error {
+func (s *SubscriberManager) AddSubscriber(fn func(interface{}) error) chan error {
 
 	var sig = make(chan error)
 
@@ -56,7 +56,7 @@ func (s *SubscriberHost) AddSubscriber(fn func(interface{}) error) chan error {
 	return sig
 }
 
-func (s *SubscriberHost) UnsubscribeAll() {
+func (s *SubscriberManager) UnsubscribeAll() {
 
 	for _, l := range s.subscribers {
 
