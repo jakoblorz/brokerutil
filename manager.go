@@ -15,28 +15,28 @@ type StreamManager interface {
 	Listen() error
 }
 
-func NewStreamManager(d driver.DriverScaffold) (StreamManager, error) {
+func NewStreamManager(d driver.Scaffold) (StreamManager, error) {
 
 	switch d.GetDriverType() {
 	case driver.MultithreadDriver:
-		return newMultiThreadStreamManager(d.(driver.MultiThreadDriverScaffold))
+		return newMultiThreadStreamManager(d.(driver.MultiThreadScaffold))
 
 	case driver.SinglethreadDriver:
-		return newSingleThreadStreamManager(d.(driver.SingleThreadDriverScaffold))
+		return newSingleThreadStreamManager(d.(driver.SingleThreadScaffold))
 	}
 
 	return nil, errors.New("could not match driver architecture to driver wrapper")
 }
 
 type multiThreadStreamManager struct {
-	driver     driver.MultiThreadDriverScaffold
+	driver     driver.MultiThreadScaffold
 	controller subscriberController
 
 	terminate chan int
 	backlog   chan stream.Message
 }
 
-func newMultiThreadStreamManager(d driver.MultiThreadDriverScaffold) (multiThreadStreamManager, error) {
+func newMultiThreadStreamManager(d driver.MultiThreadScaffold) (multiThreadStreamManager, error) {
 	m := multiThreadStreamManager{
 		driver:     d,
 		controller: newSubscriberController(),
@@ -111,14 +111,14 @@ func (m multiThreadStreamManager) Listen() error {
 }
 
 type singleThreadStreamManager struct {
-	driver     driver.SingleThreadDriverScaffold
+	driver     driver.SingleThreadScaffold
 	controller subscriberController
 
 	terminate chan int
 	backlog   chan stream.Message
 }
 
-func newSingleThreadStreamManager(d driver.SingleThreadDriverScaffold) (singleThreadStreamManager, error) {
+func newSingleThreadStreamManager(d driver.SingleThreadScaffold) (singleThreadStreamManager, error) {
 	m := singleThreadStreamManager{
 		driver:     d,
 		controller: newSubscriberController(),

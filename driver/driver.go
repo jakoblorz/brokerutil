@@ -2,28 +2,29 @@ package driver
 
 import "github.com/jakoblorz/singapoor/stream"
 
-type DriverType int
+type Type int
 
 const (
-	MultithreadDriver  DriverType = iota
-	SinglethreadDriver DriverType = iota
+	MultithreadDriver  Type = iota
+	SinglethreadDriver Type = iota
 )
 
-type DriverScaffold interface {
-	GetDriverType() DriverType
+type Scaffold interface {
+	GetDriverType() Type
+
 	NotifyStreamClose() error
 	NotifyStreamOpen() error
 }
 
-type SingleThreadDriverScaffold interface {
-	DriverScaffold
+type SingleThreadScaffold interface {
+	Scaffold
 	NotifyMessageTest() (bool, error)
 	NotifyMessageRecieve() (stream.Message, error)
 	NotifyMessagePublish(stream.Message) error
 }
 
-type MultiThreadDriverScaffold interface {
-	DriverScaffold
+type MultiThreadScaffold interface {
+	Scaffold
 	GetMessageWriterChannel() (chan<- stream.Message, error)
 	GetMessageReaderChannel() (<-chan stream.Message, error)
 }
