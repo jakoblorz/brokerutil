@@ -1,3 +1,11 @@
+// Package singapoor provides a common interface to pub-sub message-brokers for pub-sub
+// applications.
+//
+// Use singapoor to be able to build pub-sub applications which are not
+// highly dependent on the message-brokers driver implementation quirk.
+// singapoor provides a common interface which enables the developer to switch
+// the message broker without having to rewrite major parts of the applications
+// pub-sub logic.
 package singapoor
 
 import (
@@ -61,6 +69,7 @@ func NewPubSubFromDriver(d driver.Scaffold) (PubSub, error) {
 		return newSingleThreadPubSubDriverWrapper(d.(driver.SingleThreadScaffold))
 	}
 
+	// driver does not seem to follow required patterns.
 	return nil, errors.New("could not match driver architecture to driver wrapper")
 }
 
