@@ -7,7 +7,7 @@ import (
 	"github.com/jakoblorz/singapoor/stream"
 )
 
-type StreamManager interface {
+type PubSub interface {
 	SubscribeAsync(SubscriberFunc) (chan error, SubscriberIdentifier)
 	SubscribeSync(SubscriberFunc) error
 	Unsubscribe(SubscriberIdentifier)
@@ -15,20 +15,20 @@ type StreamManager interface {
 	Listen() error
 }
 
-func NewStreamManager(d driver.Scaffold) (StreamManager, error) {
+func NewPubSubFromDriver(d driver.Scaffold) (PubSub, error) {
 
 	switch d.GetDriverType() {
 	case driver.MultiThreadDriver:
-		return newMultiThreadStreamManager(d.(driver.MultiThreadScaffold))
+		return newMultiThreadPubSubDriverWrapper(d.(driver.MultiThreadScaffold))
 
 	case driver.SingleThreadDriver:
-		return newSingleThreadStreamManager(d.(driver.SingleThreadScaffold))
+		return newSingleThreadPubSubDriverWrapper(d.(driver.SingleThreadScaffold))
 	}
 
 	return nil, errors.New("could not match driver architecture to driver wrapper")
 }
 
-type multiThreadStreamManager struct {
+type multiThreadPubSubDriverWrapper struct {
 	driver     driver.MultiThreadScaffold
 	controller subscriberController
 
@@ -36,8 +36,8 @@ type multiThreadStreamManager struct {
 	backlog   chan stream.Message
 }
 
-func newMultiThreadStreamManager(d driver.MultiThreadScaffold) (multiThreadStreamManager, error) {
-	m := multiThreadStreamManager{
+func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadScaffold) (multiThreadPubSubDriverWrapper, error) {
+	m := multiThreadPubSubDriverWrapper{
 		driver:     d,
 		controller: newSubscriberController(),
 		terminate:  make(chan int),
@@ -47,23 +47,23 @@ func newMultiThreadStreamManager(d driver.MultiThreadScaffold) (multiThreadStrea
 	return m, nil
 }
 
-func (m multiThreadStreamManager) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (m multiThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 	return m.controller.SubscribeAsync(fn)
 }
 
-func (m multiThreadStreamManager) SubscribeSync(fn SubscriberFunc) error {
+func (m multiThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
 	return m.controller.SubscribeSync(fn)
 }
 
-func (m multiThreadStreamManager) Unsubscribe(identifier SubscriberIdentifier) {
+func (m multiThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
 	m.controller.Unsubscribe(identifier)
 }
 
-func (m multiThreadStreamManager) UnsubscribeAll() {
+func (m multiThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
 }
 
-func (m multiThreadStreamManager) Listen() error {
+func (m multiThreadPubSubDriverWrapper) Listen() error {
 
 	defer m.controller.UnsubscribeAll()
 
@@ -110,7 +110,7 @@ func (m multiThreadStreamManager) Listen() error {
 	return nil
 }
 
-type singleThreadStreamManager struct {
+type singleThreadPubSubDriverWrapper struct {
 	driver     driver.SingleThreadScaffold
 	controller subscriberController
 
@@ -118,8 +118,8 @@ type singleThreadStreamManager struct {
 	backlog   chan stream.Message
 }
 
-func newSingleThreadStreamManager(d driver.SingleThreadScaffold) (singleThreadStreamManager, error) {
-	m := singleThreadStreamManager{
+func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadScaffold) (singleThreadPubSubDriverWrapper, error) {
+	m := singleThreadPubSubDriverWrapper{
 		driver:     d,
 		controller: newSubscriberController(),
 		terminate:  make(chan int),
@@ -129,23 +129,23 @@ func newSingleThreadStreamManager(d driver.SingleThreadScaffold) (singleThreadSt
 	return m, nil
 }
 
-func (m singleThreadStreamManager) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (m singleThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 	return m.controller.SubscribeAsync(fn)
 }
 
-func (m singleThreadStreamManager) SubscribeSync(fn SubscriberFunc) error {
+func (m singleThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
 	return m.controller.SubscribeSync(fn)
 }
 
-func (m singleThreadStreamManager) Unsubscribe(identifier SubscriberIdentifier) {
+func (m singleThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
 	m.controller.Unsubscribe(identifier)
 }
 
-func (m singleThreadStreamManager) UnsubscribeAll() {
+func (m singleThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
 }
 
-func (m singleThreadStreamManager) Listen() error {
+func (m singleThreadPubSubDriverWrapper) Listen() error {
 
 	defer m.controller.UnsubscribeAll()
 

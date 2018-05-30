@@ -22,38 +22,28 @@ func main() {
       DB:       0
     },
   })
-  
+
   if err != nil {
     log.Fatalf("could not create singapoor redis driver: %v", err)
     return
   }
 
-  // create new controller using the initialized redis driver
-  controller, err := singapoor.NewController(driver)
+  // create new pub sub using the initialized redis driver
+  ps, err := singapoor.NewPubSubFromDriver(driver)
   if err != nil {
-    log.Fatalf("could not create singapoor controller: %v", err)
+    log.Fatalf("could not create singapoor pub sub: %v", err)
     return
   }
-  
-  // establish connection etc
-  if err := controller.Open(); err != nil {
-    log.Fatalf("could not open controller: %v", err)
-    return
-  }
-  
-  // clean up when main terminates
-  defer controller.Close()
-  
-  
+
   // run blocking subscribe as go routine
-  go controller.BlockingSubscribe(func(msg interface{}) error {
+  go ps.BlockingSubscribe(func(msg interface{}) error {
     fmt.Printf("%s", msg)
-    
+
     return nil
   })
-  
+
   // start controller routine which blocks execution
-  if err := controller.Run(); err != nil {
+  if err := controller.Listen(); err != nil {
     log.Fatalf("could not run controller routine: %v", err)
     return
   }
