@@ -71,9 +71,7 @@ func (s *subscriberController) Unsubscribe(identifier SubscriberIdentifier) {
 
 func (s *subscriberController) UnsubscribeAll() {
 
-	for identifier, subscriber := range s.subscribers {
-		subscriber.sig <- nil
-
-		delete(s.subscribers, identifier)
+	for identifier := range s.subscribers {
+		s.Unsubscribe(identifier)
 	}
 }
