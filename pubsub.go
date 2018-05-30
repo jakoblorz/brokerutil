@@ -7,11 +7,30 @@ import (
 	"github.com/jakoblorz/singapoor/stream"
 )
 
+// PubSub is the common interface for any kind of Publish / Subscribe
+// actions. Independently from the implementation of the driver, it guarantees that
+// the exposed functions will work as expected.
 type PubSub interface {
+
+	// SubscribeAsync will create a new callback function which is invoked
+	// on any incomming messages.
+	//
+	// It returns a error chan which will contain
+	// all occuring / returned errors of the SubscriberFunc. A nil error
+	// indicates the auto-unsubscribe after the call of UnsubscribeAll().
+	// Use the SubscriberIdentifier to Unsubscribe later.
 	SubscribeAsync(SubscriberFunc) (chan error, SubscriberIdentifier)
+
+	// Subscribe will create a new callback function like SubscribeAsync().
+	//
+	// It will block for a error or nil in the error chan, then returns it.
 	SubscribeSync(SubscriberFunc) error
+
 	Unsubscribe(SubscriberIdentifier)
 	UnsubscribeAll()
+
+	Publish(stream.Message) error
+
 	Listen() error
 }
 
@@ -61,6 +80,11 @@ func (m multiThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentif
 
 func (m multiThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
+}
+
+func (m multiThreadPubSubDriverWrapper) Publish(msg stream.Message) error {
+	m.backlog <- msg
+	return nil
 }
 
 func (m multiThreadPubSubDriverWrapper) Listen() error {
@@ -143,6 +167,11 @@ func (m singleThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdenti
 
 func (m singleThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
+}
+
+func (m singleThreadPubSubDriverWrapper) Publish(msg stream.Message) error {
+	m.backlog <- msg
+	return nil
 }
 
 func (m singleThreadPubSubDriverWrapper) Listen() error {
