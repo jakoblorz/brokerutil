@@ -12,7 +12,7 @@ import (
 // the exposed functions will work as expected.
 type PubSub interface {
 
-	// SubscribeAsync will create a new callback function which is invoked
+	// SubscribeAsync creates a new callback function which is invoked
 	// on any incomming messages.
 	//
 	// It returns a error chan which will contain
@@ -21,19 +21,36 @@ type PubSub interface {
 	// Use the SubscriberIdentifier to Unsubscribe later.
 	SubscribeAsync(SubscriberFunc) (chan error, SubscriberIdentifier)
 
-	// Subscribe will create a new callback function like SubscribeAsync().
+	// SubscribeSync creates a new callback function like SubscribeAsync().
 	//
-	// It will block for a error or nil in the error chan, then returns it.
+	// It will block until recieving error or nil in the error chan, then returns it.
 	SubscribeSync(SubscriberFunc) error
 
+	// Unsubscribe removes a previously added callback function from the invokation
+	// loop.
+	//
+	// Use the SubscriberIdentifier created when calling SubscribeAsync(). It will
+	// send a nil error in the callback function's error chan.
 	Unsubscribe(SubscriberIdentifier)
+
+	// UnsubscribeAll removes all added callback functions from the invokation
+	// loop.
+	//
+	// It will send a nil error in the callback's function's error chans.
 	UnsubscribeAll()
 
+	// Publish sends a message to the message broker.
 	Publish(stream.Message) error
 
+	// Listen starts the relay goroutine which uses the provided driver to
+	// communicate with the message broker.
 	Listen() error
 }
 
+// NewPubSubFromDriver creates a new PubSub from the provided driver
+//
+// Depending on the implementation of the driver (single- or multithreaded)
+// a different PubSub implementation will be chosen.
 func NewPubSubFromDriver(d driver.Scaffold) (PubSub, error) {
 
 	switch d.GetDriverType() {
