@@ -8,10 +8,10 @@ import (
 )
 
 type dynamicDriverScaffold struct {
-	driverType driver.Type
+	driverType driver.PubSubDriverType
 }
 
-func (d dynamicDriverScaffold) GetDriverType() driver.Type {
+func (d dynamicDriverScaffold) GetDriverType() driver.PubSubDriverType {
 	return d.driverType
 }
 
@@ -55,7 +55,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 		}
 
 		_, err = NewPubSubFromDriver(dynamicDriverScaffold{
-			driverType: driver.Type(3),
+			driverType: driver.PubSubDriverType(3),
 		})
 
 		if err == nil {

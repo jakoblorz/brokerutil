@@ -27,7 +27,7 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) GetDriverType() driver.Type {
+func (d Driver) GetDriverType() driver.PubSubDriverType {
 	return driver.SingleThreadPubSubDriver
 }
 
