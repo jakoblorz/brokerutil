@@ -1,11 +1,3 @@
-// Package brokerutil provides a common interface to message-brokers for pub-sub
-// applications.
-//
-// Use brokerutil to be able to build pub-sub applications which are not
-// highly dependent on the message-brokers driver implementation quirks.
-// brokerutil provides a common interface which enables developers to switch
-// the message broker without having to rewrite major parts of the applications
-// pub-sub logic.
 package brokerutil
 
 import (
@@ -70,6 +62,18 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (PubSub, error) {
 
 	// driver does not seem to follow required patterns.
 	return nil, errors.New("could not match driver architecture to driver wrapper")
+}
+
+// NewPubSubFromMultiThreadDriver creates a new PubSub from the provided multi-thread
+// pub sub driver
+func NewPubSubFromMultiThreadDriver(d driver.MultiThreadPubSubDriverScaffold) (PubSub, error) {
+	return newMultiThreadPubSubDriverWrapper(d)
+}
+
+// NewPubSubFromSingleThreadDriver creates a new PubSub from the provided single-thread
+// pub sub driver
+func NewPubSubFromSingleThreadDriver(d driver.SingleThreadPubSubDriverScaffold) (PubSub, error) {
+	return newSingleThreadPubSubDriverWrapper(d)
 }
 
 type multiThreadPubSubDriverWrapper struct {
