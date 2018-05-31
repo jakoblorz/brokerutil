@@ -73,8 +73,8 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (PubSub, error) {
 }
 
 type multiThreadPubSubDriverWrapper struct {
-	driver     driver.MultiThreadPubSubDriverScaffold
-	controller subscriberController
+	driver    driver.MultiThreadPubSubDriverScaffold
+	scheduler scheduler
 
 	terminate chan int
 	backlog   chan interface{}
@@ -82,29 +82,29 @@ type multiThreadPubSubDriverWrapper struct {
 
 func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadPubSubDriverScaffold) (multiThreadPubSubDriverWrapper, error) {
 	m := multiThreadPubSubDriverWrapper{
-		driver:     d,
-		controller: newSubscriberController(),
-		terminate:  make(chan int),
-		backlog:    make(chan interface{}),
+		driver:    d,
+		scheduler: newScheduler(),
+		terminate: make(chan int),
+		backlog:   make(chan interface{}),
 	}
 
 	return m, nil
 }
 
 func (m multiThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
-	return m.controller.SubscribeAsync(fn)
+	return m.scheduler.SubscribeAsync(fn)
 }
 
 func (m multiThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
-	return m.controller.SubscribeSync(fn)
+	return m.scheduler.SubscribeSync(fn)
 }
 
 func (m multiThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
-	m.controller.Unsubscribe(identifier)
+	m.scheduler.Unsubscribe(identifier)
 }
 
 func (m multiThreadPubSubDriverWrapper) UnsubscribeAll() {
-	m.controller.UnsubscribeAll()
+	m.scheduler.UnsubscribeAll()
 }
 
 func (m multiThreadPubSubDriverWrapper) Publish(msg interface{}) error {
@@ -114,7 +114,7 @@ func (m multiThreadPubSubDriverWrapper) Publish(msg interface{}) error {
 
 func (m multiThreadPubSubDriverWrapper) Listen() error {
 
-	defer m.controller.UnsubscribeAll()
+	defer m.scheduler.UnsubscribeAll()
 
 	if err := m.driver.NotifyStreamOpen(); err != nil {
 		return err
@@ -133,7 +133,7 @@ func (m multiThreadPubSubDriverWrapper) Listen() error {
 			case <-m.terminate:
 				return
 			case msg := <-inbound:
-				m.controller.NotifySubscribers(msg)
+				m.scheduler.NotifySubscribers(msg)
 			}
 		}
 	}()
@@ -160,8 +160,8 @@ func (m multiThreadPubSubDriverWrapper) Listen() error {
 }
 
 type singleThreadPubSubDriverWrapper struct {
-	driver     driver.SingleThreadPubSubDriverScaffold
-	controller subscriberController
+	driver    driver.SingleThreadPubSubDriverScaffold
+	scheduler scheduler
 
 	terminate chan int
 	backlog   chan interface{}
@@ -169,29 +169,29 @@ type singleThreadPubSubDriverWrapper struct {
 
 func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadPubSubDriverScaffold) (singleThreadPubSubDriverWrapper, error) {
 	m := singleThreadPubSubDriverWrapper{
-		driver:     d,
-		controller: newSubscriberController(),
-		terminate:  make(chan int),
-		backlog:    make(chan interface{}),
+		driver:    d,
+		scheduler: newScheduler(),
+		terminate: make(chan int),
+		backlog:   make(chan interface{}),
 	}
 
 	return m, nil
 }
 
 func (m singleThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
-	return m.controller.SubscribeAsync(fn)
+	return m.scheduler.SubscribeAsync(fn)
 }
 
 func (m singleThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
-	return m.controller.SubscribeSync(fn)
+	return m.scheduler.SubscribeSync(fn)
 }
 
 func (m singleThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
-	m.controller.Unsubscribe(identifier)
+	m.scheduler.Unsubscribe(identifier)
 }
 
 func (m singleThreadPubSubDriverWrapper) UnsubscribeAll() {
-	m.controller.UnsubscribeAll()
+	m.scheduler.UnsubscribeAll()
 }
 
 func (m singleThreadPubSubDriverWrapper) Publish(msg interface{}) error {
@@ -201,7 +201,7 @@ func (m singleThreadPubSubDriverWrapper) Publish(msg interface{}) error {
 
 func (m singleThreadPubSubDriverWrapper) Listen() error {
 
-	defer m.controller.UnsubscribeAll()
+	defer m.scheduler.UnsubscribeAll()
 
 	if err := m.driver.NotifyStreamOpen(); err != nil {
 		return err
@@ -231,7 +231,7 @@ func (m singleThreadPubSubDriverWrapper) Listen() error {
 					return err
 				}
 
-				m.controller.NotifySubscribers(msg)
+				m.scheduler.NotifySubscribers(msg)
 			}
 		}
 	}

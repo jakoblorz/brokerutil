@@ -6,18 +6,18 @@ import (
 	"time"
 )
 
-func Test_subscriberController_newSubscriberController(t *testing.T) {
-	t.Run("should return new subscriberController with initialized subscribers map", func(t *testing.T) {
-		if (newSubscriberController()).subscribers == nil {
-			t.Error("subscriberController.newSubscriberController() did not return new subscriber instance with initialized subscribers map")
+func Test_scheduler_newScheduler(t *testing.T) {
+	t.Run("should return new scheduler with initialized subscribers map", func(t *testing.T) {
+		if (newScheduler()).subscribers == nil {
+			t.Error("scheduler.newscheduler() did not return new subscriber instance with initialized subscribers map")
 		}
 	})
 }
 
-func Test_subscriberController_NotifySubscribers(t *testing.T) {
+func Test_scheduler_NotifySubscribers(t *testing.T) {
 	t.Run("should notify all subscribers by invoking callback funcs", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		var wasAInvoked bool
 		var wasBInvoked bool
@@ -45,13 +45,13 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 		subscriberCtrl.NotifySubscribers(interface{}("test message"))
 
 		if !(wasAInvoked && wasBInvoked) {
-			t.Error("subscriberController.NotifySubscribers() did not notify all subscribers")
+			t.Error("scheduler.NotifySubscribers() did not notify all subscribers")
 		}
 	})
 
 	t.Run("should notify all subscribers and pipe errors back", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		var sig = make(chan error, 2)
 		var failErr = errors.New("test error")
@@ -77,14 +77,14 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 		remainingSubCount := len(subscriberCtrl.subscribers)
 
 		if remainingSubCount != 0 {
-			t.Errorf("subscriberController.NotifySubscribers() did not remove erroring subscribers: found %d registered subscribers", remainingSubCount)
+			t.Errorf("scheduler.NotifySubscribers() did not remove erroring subscribers: found %d registered subscribers", remainingSubCount)
 		}
 	})
 }
 
-func Test_subscriberController_SubscribeAsync(t *testing.T) {
+func Test_scheduler_SubscribeAsync(t *testing.T) {
 
-	subscriberCtrl := newSubscriberController()
+	subscriberCtrl := newScheduler()
 	var subscriberCountBefore = len(subscriberCtrl.subscribers)
 
 	e, i := subscriberCtrl.SubscribeAsync(func(msg interface{}) error {
@@ -95,26 +95,26 @@ func Test_subscriberController_SubscribeAsync(t *testing.T) {
 
 	t.Run("should have increased subscriber count", func(t *testing.T) {
 		if subscriberCountAfter <= subscriberCountBefore {
-			t.Errorf("subscriberController.SubscribeAsync() did not increase subscriber count: before = %d after = %d", subscriberCountBefore, subscriberCountAfter)
+			t.Errorf("scheduler.SubscribeAsync() did not increase subscriber count: before = %d after = %d", subscriberCountBefore, subscriberCountAfter)
 		}
 	})
 
 	t.Run("should have returned initialized channel", func(t *testing.T) {
 		if e == nil {
-			t.Error("subscriberController.SubscribeAsync() did not return initialized channel: channel is nil")
+			t.Error("scheduler.SubscribeAsync() did not return initialized channel: channel is nil")
 		}
 	})
 
 	t.Run("should have returned initialized subscriber identifier", func(t *testing.T) {
 		if i == "" {
-			t.Error("subscriberController.SubscribeAsync() did not return initialized subscriber identifier: subscriber identifier is empty")
+			t.Error("scheduler.SubscribeAsync() did not return initialized subscriber identifier: subscriber identifier is empty")
 		}
 	})
 }
 
-func Test_subscriberController_SubscribeSync(t *testing.T) {
+func Test_scheduler_SubscribeSync(t *testing.T) {
 
-	subscriberCtrl := newSubscriberController()
+	subscriberCtrl := newScheduler()
 	var subscriberCountBefore = len(subscriberCtrl.subscribers)
 	var subscriberCountAfter int
 
@@ -135,17 +135,17 @@ func Test_subscriberController_SubscribeSync(t *testing.T) {
 
 	t.Run("should have increased subscriber count", func(t *testing.T) {
 		if subscriberCountAfter <= subscriberCountBefore {
-			t.Errorf("subscriberController.SubscribeAsync() did not increase subscriber count: before = %d after = %d", subscriberCountBefore, subscriberCountAfter)
+			t.Errorf("scheduler.SubscribeAsync() did not increase subscriber count: before = %d after = %d", subscriberCountBefore, subscriberCountAfter)
 		}
 	})
 
 }
 
-func Test_subscriberController_Unsubscribe(t *testing.T) {
+func Test_scheduler_Unsubscribe(t *testing.T) {
 
 	t.Run("should remove subscriber from map", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		subscriberID := SubscriberIdentifier("unsubscribe-test")
 
@@ -162,13 +162,13 @@ func Test_subscriberController_Unsubscribe(t *testing.T) {
 		var subscriberAfterCount = len(subscriberCtrl.subscribers)
 
 		if !(subscriberAfterCount < subscriberBeforeCount) {
-			t.Error("subscriberController.Unsubscribe() did not remove subscriber from map")
+			t.Error("scheduler.Unsubscribe() did not remove subscriber from map")
 		}
 	})
 
 	t.Run("should send nil on subscribers error channel", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		subscriberID := SubscriberIdentifier("unsubscribe-test")
 
@@ -182,16 +182,16 @@ func Test_subscriberController_Unsubscribe(t *testing.T) {
 
 		err := <-sig
 		if err != nil {
-			t.Errorf("subscriberController.Unsubscribe() did not send nil on error channel: sent value = %v", err)
+			t.Errorf("scheduler.Unsubscribe() did not send nil on error channel: sent value = %v", err)
 		}
 	})
 }
 
-func Test_subscriberController_UnsubscribeAll(t *testing.T) {
+func Test_scheduler_UnsubscribeAll(t *testing.T) {
 
 	t.Run("should remove all subscribers from map", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		var subSig = make(chan error, 2)
 		var subFn = func(msg interface{}) error {
@@ -216,13 +216,13 @@ func Test_subscriberController_UnsubscribeAll(t *testing.T) {
 		var subscriberAfterCount = len(subscriberCtrl.subscribers)
 
 		if subscriberAfterCount != 0 {
-			t.Error("subscriberController.UnsubscribeAll() did not remove all subscribers from map")
+			t.Error("scheduler.UnsubscribeAll() did not remove all subscribers from map")
 		}
 	})
 
 	t.Run("should send nil on all subscribers error channels", func(t *testing.T) {
 
-		subscriberCtrl := newSubscriberController()
+		subscriberCtrl := newScheduler()
 
 		var sig = make(chan error, 2)
 		var subFn = func(msg interface{}) error {
@@ -248,7 +248,7 @@ func Test_subscriberController_UnsubscribeAll(t *testing.T) {
 		errChanMsgB := <-sig
 
 		if !(errChanMsgA == nil && errChanMsgB == nil) {
-			t.Error("subscriberController.UnsubscribeAll() did not send nil on all subscribers error channels")
+			t.Error("scheduler.UnsubscribeAll() did not send nil on all subscribers error channels")
 		}
 	})
 }

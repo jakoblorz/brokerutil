@@ -12,17 +12,17 @@ type subscriberWrapper struct {
 	fn  SubscriberFunc
 }
 
-type subscriberController struct {
+type scheduler struct {
 	subscribers map[SubscriberIdentifier]subscriberWrapper
 }
 
-func newSubscriberController() subscriberController {
-	return subscriberController{
+func newScheduler() scheduler {
+	return scheduler{
 		subscribers: make(map[SubscriberIdentifier]subscriberWrapper),
 	}
 }
 
-func (s *subscriberController) NotifySubscribers(msg interface{}) error {
+func (s *scheduler) NotifySubscribers(msg interface{}) error {
 
 	for identifier, subscriber := range s.subscribers {
 
@@ -37,7 +37,7 @@ func (s *subscriberController) NotifySubscribers(msg interface{}) error {
 	return nil
 }
 
-func (s *subscriberController) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (s *scheduler) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 
 	identifier := SubscriberIdentifier(uuid.NewV4().String())
 
@@ -51,14 +51,14 @@ func (s *subscriberController) SubscribeAsync(fn SubscriberFunc) (chan error, Su
 	return sig, identifier
 }
 
-func (s *subscriberController) SubscribeSync(fn SubscriberFunc) error {
+func (s *scheduler) SubscribeSync(fn SubscriberFunc) error {
 
 	c, _ := s.SubscribeAsync(fn)
 
 	return <-c
 }
 
-func (s *subscriberController) Unsubscribe(identifier SubscriberIdentifier) {
+func (s *scheduler) Unsubscribe(identifier SubscriberIdentifier) {
 
 	subscriber, ok := s.subscribers[identifier]
 	if ok {
@@ -68,7 +68,7 @@ func (s *subscriberController) Unsubscribe(identifier SubscriberIdentifier) {
 	delete(s.subscribers, identifier)
 }
 
-func (s *subscriberController) UnsubscribeAll() {
+func (s *scheduler) UnsubscribeAll() {
 
 	for identifier := range s.subscribers {
 		s.Unsubscribe(identifier)
