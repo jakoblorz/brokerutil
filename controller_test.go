@@ -1,11 +1,11 @@
-package singapoor
+package brokerutil
 
 import (
 	"errors"
 	"testing"
 	"time"
 
-	"github.com/jakoblorz/singapoor/stream"
+	"github.com/jakoblorz/brokerutil/stream"
 )
 
 func Test_subscriberController_newSubscriberController(t *testing.T) {

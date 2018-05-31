@@ -1,6 +1,6 @@
 package driver
 
-import "github.com/jakoblorz/singapoor/stream"
+import "github.com/jakoblorz/brokerutil/stream"
 
 type Type int
 

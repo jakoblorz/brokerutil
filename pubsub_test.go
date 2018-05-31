@@ -1,10 +1,10 @@
-package singapoor
+package brokerutil
 
 import (
 	"testing"
 
-	"github.com/jakoblorz/singapoor/driver"
-	"github.com/jakoblorz/singapoor/driver/loopback"
+	"github.com/jakoblorz/brokerutil/driver"
+	"github.com/jakoblorz/brokerutil/driver/loopback"
 )
 
 type dynamicDriverScaffold struct {

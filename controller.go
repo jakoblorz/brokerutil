@@ -1,7 +1,7 @@
-package singapoor
+package brokerutil
 
 import (
-	"github.com/jakoblorz/singapoor/stream"
+	"github.com/jakoblorz/brokerutil/stream"
 	uuid "github.com/satori/go.uuid"
 )
 

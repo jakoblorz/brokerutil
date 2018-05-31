@@ -1,18 +1,18 @@
-// Package singapoor provides a common interface to message-brokers for pub-sub
+// Package brokerutil provides a common interface to message-brokers for pub-sub
 // applications.
 //
-// Use singapoor to be able to build pub-sub applications which are not
+// Use brokerutil to be able to build pub-sub applications which are not
 // highly dependent on the message-brokers driver implementation quirks.
-// singapoor provides a common interface which enables developers to switch
+// brokerutil provides a common interface which enables developers to switch
 // the message broker without having to rewrite major parts of the applications
 // pub-sub logic.
-package singapoor
+package brokerutil
 
 import (
 	"errors"
 
-	"github.com/jakoblorz/singapoor/driver"
-	"github.com/jakoblorz/singapoor/stream"
+	"github.com/jakoblorz/brokerutil/driver"
+	"github.com/jakoblorz/brokerutil/stream"
 )
 
 // PubSub is the common interface for any kind of Publish / Subscribe

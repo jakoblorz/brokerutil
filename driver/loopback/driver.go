@@ -1,8 +1,8 @@
 package loopback
 
 import (
-	"github.com/jakoblorz/singapoor/driver"
-	"github.com/jakoblorz/singapoor/stream"
+	"github.com/jakoblorz/brokerutil/driver"
+	"github.com/jakoblorz/brokerutil/stream"
 )
 
 type Driver struct {
