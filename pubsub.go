@@ -12,7 +12,6 @@ import (
 	"errors"
 
 	"github.com/jakoblorz/brokerutil/driver"
-	"github.com/jakoblorz/brokerutil/stream"
 )
 
 // PubSub is the common interface for any kind of Publish / Subscribe
@@ -48,7 +47,7 @@ type PubSub interface {
 	UnsubscribeAll()
 
 	// Publish sends a message to the message broker.
-	Publish(stream.Message) error
+	Publish(interface{}) error
 
 	// Listen starts the relay goroutine which uses the provided driver to
 	// communicate with the message broker.
@@ -78,7 +77,7 @@ type multiThreadPubSubDriverWrapper struct {
 	controller subscriberController
 
 	terminate chan int
-	backlog   chan stream.Message
+	backlog   chan interface{}
 }
 
 func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadScaffold) (multiThreadPubSubDriverWrapper, error) {
@@ -86,7 +85,7 @@ func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadScaffold) (multiThrea
 		driver:     d,
 		controller: newSubscriberController(),
 		terminate:  make(chan int),
-		backlog:    make(chan stream.Message),
+		backlog:    make(chan interface{}),
 	}
 
 	return m, nil
@@ -108,7 +107,7 @@ func (m multiThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
 }
 
-func (m multiThreadPubSubDriverWrapper) Publish(msg stream.Message) error {
+func (m multiThreadPubSubDriverWrapper) Publish(msg interface{}) error {
 	m.backlog <- msg
 	return nil
 }
@@ -165,7 +164,7 @@ type singleThreadPubSubDriverWrapper struct {
 	controller subscriberController
 
 	terminate chan int
-	backlog   chan stream.Message
+	backlog   chan interface{}
 }
 
 func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadScaffold) (singleThreadPubSubDriverWrapper, error) {
@@ -173,7 +172,7 @@ func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadScaffold) (singleTh
 		driver:     d,
 		controller: newSubscriberController(),
 		terminate:  make(chan int),
-		backlog:    make(chan stream.Message),
+		backlog:    make(chan interface{}),
 	}
 
 	return m, nil
@@ -195,7 +194,7 @@ func (m singleThreadPubSubDriverWrapper) UnsubscribeAll() {
 	m.controller.UnsubscribeAll()
 }
 
-func (m singleThreadPubSubDriverWrapper) Publish(msg stream.Message) error {
+func (m singleThreadPubSubDriverWrapper) Publish(msg interface{}) error {
 	m.backlog <- msg
 	return nil
 }

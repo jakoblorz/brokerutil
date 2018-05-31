@@ -2,18 +2,17 @@ package loopback
 
 import (
 	"github.com/jakoblorz/brokerutil/driver"
-	"github.com/jakoblorz/brokerutil/stream"
 )
 
 type Driver struct {
 	driverType driver.Type
-	channel    chan stream.Message
+	channel    chan interface{}
 }
 
 func NewDriver(driverType driver.Type) (*Driver, error) {
 	return &Driver{
 		driverType: driverType,
-		channel:    make(chan stream.Message),
+		channel:    make(chan interface{}),
 	}, nil
 }
 
@@ -41,20 +40,20 @@ func (d Driver) NotifyMessageTest() (bool, error) {
 	return true, nil
 }
 
-func (d Driver) NotifyMessageRecieve() (stream.Message, error) {
+func (d Driver) NotifyMessageRecieve() (interface{}, error) {
 	return <-d.channel, nil
 }
 
-func (d Driver) NotifyMessagePublish(msg stream.Message) error {
+func (d Driver) NotifyMessagePublish(msg interface{}) error {
 
 	d.channel <- msg
 	return nil
 }
 
-func (d Driver) GetMessageWriterChannel() (chan<- stream.Message, error) {
+func (d Driver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return d.channel, nil
 }
 
-func (d Driver) GetMessageReaderChannel() (<-chan stream.Message, error) {
+func (d Driver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return d.channel, nil
 }

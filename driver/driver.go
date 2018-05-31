@@ -1,7 +1,5 @@
 package driver
 
-import "github.com/jakoblorz/brokerutil/stream"
-
 type Type int
 
 const (
@@ -19,12 +17,12 @@ type Scaffold interface {
 type SingleThreadScaffold interface {
 	Scaffold
 	NotifyMessageTest() (bool, error)
-	NotifyMessageRecieve() (stream.Message, error)
-	NotifyMessagePublish(stream.Message) error
+	NotifyMessageRecieve() (interface{}, error)
+	NotifyMessagePublish(interface{}) error
 }
 
 type MultiThreadScaffold interface {
 	Scaffold
-	GetMessageWriterChannel() (chan<- stream.Message, error)
-	GetMessageReaderChannel() (<-chan stream.Message, error)
+	GetMessageWriterChannel() (chan<- interface{}, error)
+	GetMessageReaderChannel() (<-chan interface{}, error)
 }

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 	"time"
-
-	"github.com/jakoblorz/brokerutil/stream"
 )
 
 func Test_subscriberController_newSubscriberController(t *testing.T) {
@@ -24,12 +22,12 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 		var wasAInvoked bool
 		var wasBInvoked bool
 		var sig = make(chan error)
-		var fna = func(msg stream.Message) error {
+		var fna = func(msg interface{}) error {
 			wasAInvoked = true
 			return nil
 		}
 
-		var fnb = func(msg stream.Message) error {
+		var fnb = func(msg interface{}) error {
 			wasBInvoked = true
 			return nil
 		}
@@ -44,7 +42,7 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 			sig: sig,
 		}
 
-		subscriberCtrl.NotifySubscribers(stream.Message("test message"))
+		subscriberCtrl.NotifySubscribers(interface{}("test message"))
 
 		if !(wasAInvoked && wasBInvoked) {
 			t.Error("subscriberController.NotifySubscribers() did not notify all subscribers")
@@ -57,7 +55,7 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 
 		var sig = make(chan error, 2)
 		var failErr = errors.New("test error")
-		var failFn = func(msg stream.Message) error {
+		var failFn = func(msg interface{}) error {
 			return failErr
 		}
 
@@ -71,7 +69,7 @@ func Test_subscriberController_NotifySubscribers(t *testing.T) {
 			sig: sig,
 		}
 
-		subscriberCtrl.NotifySubscribers(stream.Message("test message"))
+		subscriberCtrl.NotifySubscribers(interface{}("test message"))
 
 		<-sig
 		<-sig
@@ -89,7 +87,7 @@ func Test_subscriberController_SubscribeAsync(t *testing.T) {
 	subscriberCtrl := newSubscriberController()
 	var subscriberCountBefore = len(subscriberCtrl.subscribers)
 
-	e, i := subscriberCtrl.SubscribeAsync(func(msg stream.Message) error {
+	e, i := subscriberCtrl.SubscribeAsync(func(msg interface{}) error {
 		return nil
 	})
 
@@ -128,10 +126,10 @@ func Test_subscriberController_SubscribeSync(t *testing.T) {
 
 		subscriberCountAfter = len(subscriberCtrl.subscribers)
 
-		subscriberCtrl.NotifySubscribers(stream.Message("test message"))
+		subscriberCtrl.NotifySubscribers(interface{}("test message"))
 	}()
 
-	subscriberCtrl.SubscribeSync(func(msg stream.Message) error {
+	subscriberCtrl.SubscribeSync(func(msg interface{}) error {
 		return errors.New("test error")
 	})
 
@@ -196,7 +194,7 @@ func Test_subscriberController_UnsubscribeAll(t *testing.T) {
 		subscriberCtrl := newSubscriberController()
 
 		var subSig = make(chan error, 2)
-		var subFn = func(msg stream.Message) error {
+		var subFn = func(msg interface{}) error {
 			return nil
 		}
 
@@ -227,7 +225,7 @@ func Test_subscriberController_UnsubscribeAll(t *testing.T) {
 		subscriberCtrl := newSubscriberController()
 
 		var sig = make(chan error, 2)
-		var subFn = func(msg stream.Message) error {
+		var subFn = func(msg interface{}) error {
 			return nil
 		}
 

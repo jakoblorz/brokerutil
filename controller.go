@@ -1,12 +1,11 @@
 package brokerutil
 
 import (
-	"github.com/jakoblorz/brokerutil/stream"
 	uuid "github.com/satori/go.uuid"
 )
 
 type SubscriberIdentifier string
-type SubscriberFunc func(stream.Message) error
+type SubscriberFunc func(interface{}) error
 
 type subscriberWrapper struct {
 	sig chan error
@@ -23,7 +22,7 @@ func newSubscriberController() subscriberController {
 	}
 }
 
-func (s *subscriberController) NotifySubscribers(msg stream.Message) error {
+func (s *subscriberController) NotifySubscribers(msg interface{}) error {
 
 	for identifier, subscriber := range s.subscribers {
 

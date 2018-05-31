@@ -56,7 +56,7 @@ func main() {
     }
 
     // run blocking subscribe as go routine
-    go ps.SubscribeSync(func(msg stream.Message) error {
+    go ps.SubscribeSync(func(msg interface{}) error {
         fmt.Printf("%v", msg)
 
         return nil
