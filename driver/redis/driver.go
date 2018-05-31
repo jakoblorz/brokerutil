@@ -28,7 +28,7 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 }
 
 func (d Driver) GetDriverType() driver.Type {
-	return driver.SingleThreadDriver
+	return driver.SingleThreadPubSubDriver
 }
 
 func (d Driver) NotifyStreamClose() error {

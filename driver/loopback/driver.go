@@ -16,12 +16,12 @@ func NewDriver(driverType driver.Type) (*Driver, error) {
 	}, nil
 }
 
-func NewSingleThreadDriver() (driver.SingleThreadScaffold, error) {
-	return NewDriver(driver.SingleThreadDriver)
+func NewSingleThreadDriver() (driver.SingleThreadPubSubDriverScaffold, error) {
+	return NewDriver(driver.SingleThreadPubSubDriver)
 }
 
-func NewMultiThreadDriver() (driver.MultiThreadScaffold, error) {
-	return NewDriver(driver.MultiThreadDriver)
+func NewMultiThreadDriver() (driver.MultiThreadPubSubDriverScaffold, error) {
+	return NewDriver(driver.MultiThreadPubSubDriver)
 }
 
 func (d Driver) GetDriverType() driver.Type {

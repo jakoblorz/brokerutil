@@ -3,26 +3,26 @@ package driver
 type Type int
 
 const (
-	MultiThreadDriver  Type = iota
-	SingleThreadDriver Type = iota
+	MultiThreadPubSubDriver  Type = iota
+	SingleThreadPubSubDriver Type = iota
 )
 
-type Scaffold interface {
+type PubSubDriverScaffold interface {
 	GetDriverType() Type
 
 	NotifyStreamClose() error
 	NotifyStreamOpen() error
 }
 
-type SingleThreadScaffold interface {
-	Scaffold
+type SingleThreadPubSubDriverScaffold interface {
+	PubSubDriverScaffold
 	NotifyMessageTest() (bool, error)
 	NotifyMessageRecieve() (interface{}, error)
 	NotifyMessagePublish(interface{}) error
 }
 
-type MultiThreadScaffold interface {
-	Scaffold
+type MultiThreadPubSubDriverScaffold interface {
+	PubSubDriverScaffold
 	GetMessageWriterChannel() (chan<- interface{}, error)
 	GetMessageReaderChannel() (<-chan interface{}, error)
 }

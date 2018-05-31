@@ -58,14 +58,14 @@ type PubSub interface {
 //
 // Depending on the implementation of the driver (single- or multithreaded)
 // a different PubSub implementation will be chosen.
-func NewPubSubFromDriver(d driver.Scaffold) (PubSub, error) {
+func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (PubSub, error) {
 
 	switch d.GetDriverType() {
-	case driver.MultiThreadDriver:
-		return newMultiThreadPubSubDriverWrapper(d.(driver.MultiThreadScaffold))
+	case driver.MultiThreadPubSubDriver:
+		return newMultiThreadPubSubDriverWrapper(d.(driver.MultiThreadPubSubDriverScaffold))
 
-	case driver.SingleThreadDriver:
-		return newSingleThreadPubSubDriverWrapper(d.(driver.SingleThreadScaffold))
+	case driver.SingleThreadPubSubDriver:
+		return newSingleThreadPubSubDriverWrapper(d.(driver.SingleThreadPubSubDriverScaffold))
 	}
 
 	// driver does not seem to follow required patterns.
@@ -73,14 +73,14 @@ func NewPubSubFromDriver(d driver.Scaffold) (PubSub, error) {
 }
 
 type multiThreadPubSubDriverWrapper struct {
-	driver     driver.MultiThreadScaffold
+	driver     driver.MultiThreadPubSubDriverScaffold
 	controller subscriberController
 
 	terminate chan int
 	backlog   chan interface{}
 }
 
-func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadScaffold) (multiThreadPubSubDriverWrapper, error) {
+func newMultiThreadPubSubDriverWrapper(d driver.MultiThreadPubSubDriverScaffold) (multiThreadPubSubDriverWrapper, error) {
 	m := multiThreadPubSubDriverWrapper{
 		driver:     d,
 		controller: newSubscriberController(),
@@ -160,14 +160,14 @@ func (m multiThreadPubSubDriverWrapper) Listen() error {
 }
 
 type singleThreadPubSubDriverWrapper struct {
-	driver     driver.SingleThreadScaffold
+	driver     driver.SingleThreadPubSubDriverScaffold
 	controller subscriberController
 
 	terminate chan int
 	backlog   chan interface{}
 }
 
-func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadScaffold) (singleThreadPubSubDriverWrapper, error) {
+func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadPubSubDriverScaffold) (singleThreadPubSubDriverWrapper, error) {
 	m := singleThreadPubSubDriverWrapper{
 		driver:     d,
 		controller: newSubscriberController(),
