@@ -15,11 +15,11 @@ func (d dynamicDriverScaffold) GetDriverType() driver.PubSubDriverType {
 	return d.driverType
 }
 
-func (d dynamicDriverScaffold) NotifyStreamClose() error {
+func (d dynamicDriverScaffold) CloseStream() error {
 	return nil
 }
 
-func (d dynamicDriverScaffold) NotifyStreamOpen() error {
+func (d dynamicDriverScaffold) OpenStream() error {
 	return nil
 }
 

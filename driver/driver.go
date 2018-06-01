@@ -26,13 +26,13 @@ type PubSubDriverScaffold interface {
 	// goroutines pub'n'subbing concurrently
 	GetDriverType() PubSubDriverType
 
-	// NotifyStreamClose is called by the driver consumer when
+	// CloseStream is called by the driver consumer when
 	// the pub-sub stream is to be closed
-	NotifyStreamClose() error
+	CloseStream() error
 
-	// NotifyStreamOpen is called by the driver consumer when
+	// OpenStream is called by the driver consumer when
 	// the pub-sub stream is to be opened
-	NotifyStreamOpen() error
+	OpenStream() error
 }
 
 // SingleThreadPubSubDriverScaffold is the implementation
@@ -45,23 +45,23 @@ type PubSubDriverScaffold interface {
 type SingleThreadPubSubDriverScaffold interface {
 	PubSubDriverScaffold
 
-	// NotifyMessageTest is called by the driver consumer to
+	// CheckForPendingMessage is called by the driver consumer to
 	// test if a message can be recieved / is pending so that
 	// waiting for the message is viable.
 	//
-	// NotifyMessageTest can be blocking
-	NotifyMessageTest() (bool, error)
+	// CheckForPendingMessage can be blocking
+	CheckForPendingMessage() (bool, error)
 
-	// NotifyMessageRecieve is called by the driver consumer to
+	// RecievePendingMessage is called by the driver consumer to
 	// recieve a message which might have be previously indicated
 	// as a true value from NotifyMessageTest().
 	//
-	// NotifyMessageRecieve can be blocking
-	NotifyMessageRecieve() (interface{}, error)
+	// RecievePendingMessage can be blocking
+	RecievePendingMessage() (interface{}, error)
 
-	// NotifyMessagePublish is called by the driver consumer to
+	// PublishMessage is called by the driver consumer to
 	// publish a message.
-	NotifyMessagePublish(interface{}) error
+	PublishMessage(interface{}) error
 }
 
 // MultiThreadPubSubDriverScaffold is the implementation

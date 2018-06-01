@@ -36,29 +36,29 @@ func (d Driver) GetDriverType() driver.PubSubDriverType {
 	return d.driverType
 }
 
-// NotifyStreamClose can be called to close the stream
-func (d Driver) NotifyStreamClose() error {
+// CloseStream can be called to close the stream
+func (d Driver) CloseStream() error {
 	return nil
 }
 
-// NotifyStreamOpen can be called to open the stream
-func (d Driver) NotifyStreamOpen() error {
+// OpenStream can be called to open the stream
+func (d Driver) OpenStream() error {
 	return nil
 }
 
-// NotifyMessageTest can be called to test if a new message
+// CheckForPendingMessage can be called to test if a new message
 // is pending
-func (d Driver) NotifyMessageTest() (bool, error) {
+func (d Driver) CheckForPendingMessage() (bool, error) {
 	return true, nil
 }
 
-// NotifyMessageRecieve can be called to recieve a message
-func (d Driver) NotifyMessageRecieve() (interface{}, error) {
+// RecievePendingMessage can be called to recieve a message
+func (d Driver) RecievePendingMessage() (interface{}, error) {
 	return <-d.channel, nil
 }
 
-// NotifyMessagePublish can be called to publish a message
-func (d Driver) NotifyMessagePublish(msg interface{}) error {
+// PublishMessage can be called to publish a message
+func (d Driver) PublishMessage(msg interface{}) error {
 
 	d.channel <- msg
 	return nil

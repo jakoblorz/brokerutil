@@ -31,22 +31,22 @@ func (d Driver) GetDriverType() driver.PubSubDriverType {
 	return driver.SingleThreadPubSubDriver
 }
 
-func (d Driver) NotifyStreamClose() error {
+func (d Driver) CloseStream() error {
 	return d.channel.Close()
 }
 
-func (d Driver) NotifyStreamOpen() error {
+func (d Driver) OpenStream() error {
 
 	d.channel = d.client.Subscribe(d.opts.channel)
 
 	return nil
 }
 
-func (d Driver) NotifyMessageTest() (bool, error) {
+func (d Driver) CheckForPendingMessage() (bool, error) {
 	return true, nil
 }
 
-func (d Driver) NotifyMessageRecieve() (interface{}, error) {
+func (d Driver) RecievePendingMessage() (interface{}, error) {
 
 	msg, err := d.channel.ReceiveMessage()
 	if err != nil {
@@ -56,7 +56,7 @@ func (d Driver) NotifyMessageRecieve() (interface{}, error) {
 	return interface{}(msg.Payload), nil
 }
 
-func (d Driver) NotifyMessagePublish(msg interface{}) error {
+func (d Driver) PublishMessage(msg interface{}) error {
 
 	err := d.client.Publish(d.opts.channel, msg)
 	if err != nil {

@@ -120,11 +120,11 @@ func (m multiThreadPubSubDriverWrapper) Listen() error {
 
 	defer m.scheduler.UnsubscribeAll()
 
-	if err := m.driver.NotifyStreamOpen(); err != nil {
+	if err := m.driver.OpenStream(); err != nil {
 		return err
 	}
 
-	defer m.driver.NotifyStreamClose()
+	defer m.driver.CloseStream()
 
 	inbound, err := m.driver.GetMessageReaderChannel()
 	if err != nil {
@@ -207,11 +207,11 @@ func (m singleThreadPubSubDriverWrapper) Listen() error {
 
 	defer m.scheduler.UnsubscribeAll()
 
-	if err := m.driver.NotifyStreamOpen(); err != nil {
+	if err := m.driver.OpenStream(); err != nil {
 		return err
 	}
 
-	defer m.driver.NotifyStreamClose()
+	defer m.driver.CloseStream()
 
 	for {
 		select {
@@ -220,17 +220,17 @@ func (m singleThreadPubSubDriverWrapper) Listen() error {
 			return nil
 
 		case msg := <-m.backlog:
-			m.driver.NotifyMessagePublish(msg)
+			m.driver.PublishMessage(msg)
 
 		default:
 
-			avail, err := m.driver.NotifyMessageTest()
+			avail, err := m.driver.CheckForPendingMessage()
 			if err != nil {
 				return err
 			}
 
 			if avail {
-				msg, err := m.driver.NotifyMessageRecieve()
+				msg, err := m.driver.RecievePendingMessage()
 				if err != nil {
 					return err
 				}
