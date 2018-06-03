@@ -44,6 +44,12 @@ type PubSub interface {
 	// Listen starts the relay goroutine which uses the provided driver to
 	// communicate with the message broker.
 	Listen() error
+
+	// Terminate send a termination signal so that the blocking Listen will
+	// be released.
+	//
+	// Subscribers will be unsubscribed was well.
+	Terminate() error
 }
 
 // NewPubSubFromDriver creates a new PubSub from the provided driver
@@ -62,18 +68,6 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (PubSub, error) {
 
 	// driver does not seem to follow required patterns.
 	return nil, errors.New("could not match driver architecture to driver wrapper")
-}
-
-// NewPubSubFromMultiThreadDriver creates a new PubSub from the provided multi-thread
-// pub sub driver
-func NewPubSubFromMultiThreadDriver(d driver.MultiThreadPubSubDriverScaffold) (PubSub, error) {
-	return newMultiThreadPubSubDriverWrapper(d)
-}
-
-// NewPubSubFromSingleThreadDriver creates a new PubSub from the provided single-thread
-// pub sub driver
-func NewPubSubFromSingleThreadDriver(d driver.SingleThreadPubSubDriverScaffold) (PubSub, error) {
-	return newSingleThreadPubSubDriverWrapper(d)
 }
 
 type multiThreadPubSubDriverWrapper struct {
@@ -163,6 +157,11 @@ func (m multiThreadPubSubDriverWrapper) Listen() error {
 	return nil
 }
 
+func (m multiThreadPubSubDriverWrapper) Terminate() error {
+	m.terminate <- 1
+	return nil
+}
+
 type singleThreadPubSubDriverWrapper struct {
 	driver    driver.SingleThreadPubSubDriverScaffold
 	scheduler scheduler
@@ -182,61 +181,66 @@ func newSingleThreadPubSubDriverWrapper(d driver.SingleThreadPubSubDriverScaffol
 	return m, nil
 }
 
-func (m singleThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
-	return m.scheduler.SubscribeAsync(fn)
+func (s singleThreadPubSubDriverWrapper) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+	return s.scheduler.SubscribeAsync(fn)
 }
 
-func (m singleThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
-	return m.scheduler.SubscribeSync(fn)
+func (s singleThreadPubSubDriverWrapper) SubscribeSync(fn SubscriberFunc) error {
+	return s.scheduler.SubscribeSync(fn)
 }
 
-func (m singleThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
-	m.scheduler.Unsubscribe(identifier)
+func (s singleThreadPubSubDriverWrapper) Unsubscribe(identifier SubscriberIdentifier) {
+	s.scheduler.Unsubscribe(identifier)
 }
 
-func (m singleThreadPubSubDriverWrapper) UnsubscribeAll() {
-	m.scheduler.UnsubscribeAll()
+func (s singleThreadPubSubDriverWrapper) UnsubscribeAll() {
+	s.scheduler.UnsubscribeAll()
 }
 
-func (m singleThreadPubSubDriverWrapper) Publish(msg interface{}) error {
-	m.backlog <- msg
+func (s singleThreadPubSubDriverWrapper) Publish(msg interface{}) error {
+	s.backlog <- msg
 	return nil
 }
 
-func (m singleThreadPubSubDriverWrapper) Listen() error {
+func (s singleThreadPubSubDriverWrapper) Listen() error {
 
-	defer m.scheduler.UnsubscribeAll()
+	defer s.scheduler.UnsubscribeAll()
 
-	if err := m.driver.OpenStream(); err != nil {
+	if err := s.driver.OpenStream(); err != nil {
 		return err
 	}
 
-	defer m.driver.CloseStream()
+	defer s.driver.CloseStream()
 
 	for {
 		select {
 
-		case <-m.terminate:
+		case <-s.terminate:
 			return nil
 
-		case msg := <-m.backlog:
-			m.driver.PublishMessage(msg)
+		case msg := <-s.backlog:
+			s.driver.PublishMessage(msg)
 
 		default:
 
-			avail, err := m.driver.CheckForPendingMessage()
+			avail, err := s.driver.CheckForPendingMessage()
 			if err != nil {
 				return err
 			}
 
 			if avail {
-				msg, err := m.driver.ReceivePendingMessage()
+				msg, err := s.driver.ReceivePendingMessage()
 				if err != nil {
 					return err
 				}
 
-				m.scheduler.NotifySubscribers(msg)
+				s.scheduler.NotifySubscribers(msg)
 			}
 		}
 	}
+}
+
+func (s singleThreadPubSubDriverWrapper) Terminate() error {
+	s.terminate <- 1
+	return nil
 }

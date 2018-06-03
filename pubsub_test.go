@@ -181,44 +181,6 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	})
 }
 
-func TestNewPubSubFromMultiThreadDriver(t *testing.T) {
-
-	mt, err := loopback.NewMultiThreadDriver()
-	if err != nil {
-		t.Error(err)
-	}
-
-	t.Run("should return PubSub using multi thread driver wrapper", func(t *testing.T) {
-		psMt, err := NewPubSubFromMultiThreadDriver(mt)
-		if err != nil {
-			t.Error(err)
-		}
-
-		if _, ok := psMt.(multiThreadPubSubDriverWrapper); !ok {
-			t.Error("NewPubSubFromMultiThreadDriver() did not use proper driver wrapper")
-		}
-	})
-}
-
-func TestNewPubSubFromSingleThreadDriver(t *testing.T) {
-
-	st, err := loopback.NewSingleThreadDriver()
-	if err != nil {
-		t.Error(err)
-	}
-
-	t.Run("should return PubSub using single thread driver wrapper", func(t *testing.T) {
-		stMt, err := NewPubSubFromSingleThreadDriver(st)
-		if err != nil {
-			t.Error(err)
-		}
-
-		if _, ok := stMt.(singleThreadPubSubDriverWrapper); !ok {
-			t.Error("NewPubSubFromSingleThreadDriver() did not use proper driver wrapper")
-		}
-	})
-}
-
 func Test_multiThreadPubSubDriverWrapper_Publish(t *testing.T) {
 
 	t.Run("should enqueue message when publishing", func(t *testing.T) {
@@ -452,5 +414,33 @@ func Test_singleThreadPubSubDriverWrapper_UnsubscribeAll(t *testing.T) {
 		if onUnsubscribeAllInvoked == false {
 			t.Error("multiThreadPubSubDriverWrapper.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
 		}
+	})
+}
+
+func Test_multiThreadPubSubDriverWrapper_Terminate(t *testing.T) {
+
+	t.Run("should send termination signal on terminate channel", func(t *testing.T) {
+
+		mt := &multiThreadPubSubDriverWrapper{
+			terminate: make(chan int, 1),
+		}
+
+		mt.Terminate()
+
+		<-mt.terminate
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_Terminate(t *testing.T) {
+
+	t.Run("should send termination signal on terminate channel", func(t *testing.T) {
+
+		st := &singleThreadPubSubDriverWrapper{
+			terminate: make(chan int, 1),
+		}
+
+		st.Terminate()
+
+		<-st.terminate
 	})
 }
