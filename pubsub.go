@@ -70,6 +70,144 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (PubSub, error) {
 	return nil, errors.New("could not match driver architecture to driver wrapper")
 }
 
+type architectureAwarePubSub struct {
+	driver              driver.PubSubDriverScaffold
+	scheduler           scheduler
+	supportsConcurrency bool
+
+	terminate chan int
+	backlog   chan interface{}
+}
+
+func (a architectureAwarePubSub) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+	return a.scheduler.SubscribeAsync(fn)
+}
+
+func (a architectureAwarePubSub) SubscribeSync(fn SubscriberFunc) error {
+	return a.scheduler.SubscribeSync(fn)
+}
+
+func (a architectureAwarePubSub) Unsubscribe(identifier SubscriberIdentifier) {
+	a.scheduler.Unsubscribe(identifier)
+}
+
+func (a architectureAwarePubSub) UnsubscribeAll() {
+	a.scheduler.UnsubscribeAll()
+}
+
+func (a architectureAwarePubSub) Publish(msg interface{}) error {
+	a.backlog <- msg
+	return nil
+}
+
+func (a architectureAwarePubSub) ListenAsync() chan error {
+
+	errCh := make(chan error, 1)
+
+	go func() {
+		errCh <- a.Listen()
+	}()
+
+	return errCh
+}
+
+func (a architectureAwarePubSub) Listen() error {
+
+	defer a.scheduler.UnsubscribeAll()
+
+	if err := a.driver.OpenStream(); err != nil {
+		return err
+	}
+
+	defer a.driver.CloseStream()
+
+	//
+	// relay code for driver which supports concurrency
+	// such as recieving and writing from different goroutines
+	//
+	if a.supportsConcurrency {
+
+		d, ok := a.driver.(driver.MultiThreadPubSubDriverScaffold)
+
+		if !ok {
+			return errors.New("driver does not support concurrency, could not cast to correct interface")
+		}
+
+		tx, err := d.GetMessageWriterChannel()
+		if err != nil {
+			return err
+		}
+
+		rx, err := d.GetMessageReaderChannel()
+		if err != nil {
+			return err
+		}
+
+		go func() {
+
+			for {
+				select {
+				case <-a.terminate:
+					return
+				case msg := <-a.backlog:
+					tx <- msg
+				}
+			}
+		}()
+
+		for {
+			select {
+			case <-a.terminate:
+				return nil
+			case msg := <-rx:
+				err := a.scheduler.NotifySubscribers(msg)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	//
+	// relay code for driver which does not support concurrency
+	// such as recieving and writing from different goroutines
+	//
+
+	d, ok := a.driver.(driver.SingleThreadPubSubDriverScaffold)
+
+	if !ok {
+		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")
+	}
+
+	for {
+		select {
+		case <-a.terminate:
+			return nil
+		case msg := <-a.backlog:
+			err := d.PublishMessage(msg)
+			if err != nil {
+				return err
+			}
+
+		default:
+
+			avail, err := d.CheckForPendingMessage()
+			if err != nil {
+				return err
+			}
+
+			if avail {
+				msg, err := d.ReceivePendingMessage()
+				if err != nil {
+					return err
+				}
+
+				a.scheduler.NotifySubscribers(msg)
+			}
+		}
+	}
+}
+
 type multiThreadPubSubDriverWrapper struct {
 	driver    driver.MultiThreadPubSubDriverScaffold
 	scheduler scheduler
