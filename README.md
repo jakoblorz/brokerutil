@@ -27,7 +27,6 @@ package main
 
 import (
     "github.com/jakoblorz/brokerutil"
-    "github.com/jakoblorz/brokerutil/stream"
     "github.com/jakoblorz/brokerutil/driver/redis"
     r "github.com/go-redis/redis"
 )
@@ -64,7 +63,7 @@ func main() {
     })
 
     // start controller routine which blocks execution
-    if err := controller.Listen(); err != nil {
+    if err := ps.ListenSync(); err != nil {
         log.Fatalf("could not run controller routine: %v", err)
         return
     }
