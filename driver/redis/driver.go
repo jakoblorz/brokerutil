@@ -46,7 +46,7 @@ func (d Driver) CheckForPendingMessage() (bool, error) {
 	return true, nil
 }
 
-func (d Driver) RecievePendingMessage() (interface{}, error) {
+func (d Driver) ReceivePendingMessage() (interface{}, error) {
 
 	msg, err := d.channel.ReceiveMessage()
 	if err != nil {

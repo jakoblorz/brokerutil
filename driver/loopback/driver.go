@@ -52,8 +52,8 @@ func (d Driver) CheckForPendingMessage() (bool, error) {
 	return true, nil
 }
 
-// RecievePendingMessage can be called to recieve a message
-func (d Driver) RecievePendingMessage() (interface{}, error) {
+// ReceivePendingMessage can be called to recieve a message
+func (d Driver) ReceivePendingMessage() (interface{}, error) {
 	return <-d.channel, nil
 }
 

@@ -230,7 +230,7 @@ func (m singleThreadPubSubDriverWrapper) Listen() error {
 			}
 
 			if avail {
-				msg, err := m.driver.RecievePendingMessage()
+				msg, err := m.driver.ReceivePendingMessage()
 				if err != nil {
 					return err
 				}

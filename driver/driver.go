@@ -52,12 +52,12 @@ type SingleThreadPubSubDriverScaffold interface {
 	// CheckForPendingMessage can be blocking
 	CheckForPendingMessage() (bool, error)
 
-	// RecievePendingMessage is called by the driver consumer to
+	// ReceivePendingMessage is called by the driver consumer to
 	// recieve a message which might have be previously indicated
 	// as a true value from NotifyMessageTest().
 	//
-	// RecievePendingMessage can be blocking
-	RecievePendingMessage() (interface{}, error)
+	// ReceivePendingMessage can be blocking
+	ReceivePendingMessage() (interface{}, error)
 
 	// PublishMessage is called by the driver consumer to
 	// publish a message.
