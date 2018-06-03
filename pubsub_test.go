@@ -7,20 +7,69 @@ import (
 	"github.com/jakoblorz/brokerutil/driver/loopback"
 )
 
-type dynamicDriverScaffold struct {
+type dynamicDriverTestScaffold struct {
 	driverType driver.PubSubDriverType
 }
 
-func (d dynamicDriverScaffold) GetDriverType() driver.PubSubDriverType {
+func (d dynamicDriverTestScaffold) GetDriverType() driver.PubSubDriverType {
 	return d.driverType
 }
 
-func (d dynamicDriverScaffold) CloseStream() error {
+func (d dynamicDriverTestScaffold) CloseStream() error {
 	return nil
 }
 
-func (d dynamicDriverScaffold) OpenStream() error {
+func (d dynamicDriverTestScaffold) OpenStream() error {
 	return nil
+}
+
+type observableTestScheduler struct {
+	notifySchedulerCallbackFunc func(interface{}) error
+	subscribeAsyncCallbackFunc  func(SubscriberFunc) (chan error, SubscriberIdentifier)
+	subscribeSyncCallbackFunc   func(SubscriberFunc) error
+	unsubscribeCallbackFunc     func(SubscriberIdentifier)
+	unsubscribeAllCallbackFunc  func()
+}
+
+func (o observableTestScheduler) NotifySubscribers(msg interface{}) error {
+
+	if o.notifySchedulerCallbackFunc != nil {
+		return o.notifySchedulerCallbackFunc(msg)
+	}
+
+	return nil
+}
+
+func (o observableTestScheduler) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+
+	if o.subscribeAsyncCallbackFunc != nil {
+		return o.subscribeAsyncCallbackFunc(fn)
+	}
+
+	return nil, ""
+}
+
+func (o observableTestScheduler) SubscribeSync(fn SubscriberFunc) error {
+
+	if o.subscribeSyncCallbackFunc != nil {
+		return o.subscribeSyncCallbackFunc(fn)
+	}
+
+	return nil
+}
+
+func (o observableTestScheduler) Unsubscribe(id SubscriberIdentifier) {
+
+	if o.unsubscribeCallbackFunc != nil {
+		o.unsubscribeCallbackFunc(id)
+	}
+}
+
+func (o observableTestScheduler) UnsubscribeAll() {
+
+	if o.unsubscribeAllCallbackFunc != nil {
+		o.unsubscribeAllCallbackFunc()
+	}
 }
 
 func TestNewPubSubFromDriver(t *testing.T) {
@@ -54,7 +103,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 			t.Error("NewPubSubFromDriver() did not create proper driver singleThreadPubSubDriverWrapper")
 		}
 
-		_, err = NewPubSubFromDriver(dynamicDriverScaffold{
+		_, err = NewPubSubFromDriver(dynamicDriverTestScaffold{
 			driverType: driver.PubSubDriverType(3),
 		})
 
@@ -140,4 +189,200 @@ func Test_singleThreadPubSubDriverWrapper_Publish(t *testing.T) {
 
 	})
 
+}
+
+func Test_multiThreadPubSubDriverWrapper_SubscribeAsync(t *testing.T) {
+
+	t.Run("should invoke SubscribeAsync from scheduler", func(t *testing.T) {
+
+		var onSubscribeAsyncInvoked = false
+		var onSubscribeAsync = func(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+			onSubscribeAsyncInvoked = true
+			return nil, ""
+		}
+
+		mt := &multiThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				subscribeAsyncCallbackFunc: onSubscribeAsync,
+			},
+		}
+
+		mt.SubscribeAsync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeAsyncInvoked == false {
+			t.Error("multiThreadPubSubDriverWrapper.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
+		}
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_SubscribeAsync(t *testing.T) {
+
+	t.Run("schould invoke SubscribeAsync from scheduler", func(t *testing.T) {
+
+		var onSubscribeAsyncInvoked = false
+		var onSubscribeAsync = func(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+			onSubscribeAsyncInvoked = true
+			return nil, ""
+		}
+
+		st := &singleThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				subscribeAsyncCallbackFunc: onSubscribeAsync,
+			},
+		}
+
+		st.SubscribeAsync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeAsyncInvoked == false {
+			t.Error("singleThreadPubSubDriverWrapper.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
+		}
+	})
+}
+
+func Test_multiThreadPubSubDriverWrapper_SubscribeSync(t *testing.T) {
+
+	t.Run("should invoke SubscribeSync from scheduler", func(t *testing.T) {
+
+		var onSubscribeSyncInvoked = false
+		var onSubscribeSync = func(fn SubscriberFunc) error {
+			onSubscribeSyncInvoked = true
+			return nil
+		}
+
+		mt := &multiThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				subscribeSyncCallbackFunc: onSubscribeSync,
+			},
+		}
+
+		mt.SubscribeSync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeSyncInvoked == false {
+			t.Error("multiThreadPubSubDriverWrapper.SubscribeSync() did not invoke SubscribeSync from scheduler")
+		}
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_SubscribeSync(t *testing.T) {
+
+	t.Run("should invoke SubscribeSync from scheduler", func(t *testing.T) {
+
+		var onSubscribeSyncInvoked = false
+		var onSubscribeSync = func(fn SubscriberFunc) error {
+			onSubscribeSyncInvoked = true
+			return nil
+		}
+
+		st := &singleThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				subscribeSyncCallbackFunc: onSubscribeSync,
+			},
+		}
+
+		st.SubscribeSync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeSyncInvoked == false {
+			t.Error("singleThreadPubSubDriverWrapper.SubscribeSync() did not invoke SubscribeSync from scheduler")
+		}
+	})
+}
+
+func Test_multiThreadPubSubDriverWrapper_Unsubscribe(t *testing.T) {
+
+	t.Run("should invoke Unsubscribe from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeInvoked = false
+		var onUnsubscribe = func(id SubscriberIdentifier) {
+			onUnsubscribeInvoked = true
+		}
+
+		mt := &multiThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				unsubscribeCallbackFunc: onUnsubscribe,
+			},
+		}
+
+		mt.Unsubscribe(SubscriberIdentifier("test-identifier"))
+
+		if onUnsubscribeInvoked == false {
+			t.Error("multiThreadPubSubDriverWrapper.Unsubscribe() did not invoke Unsubscribe from scheduler")
+		}
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_Unsubscribe(t *testing.T) {
+
+	t.Run("should invoke Unsubscribe from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeInvoked = false
+		var onUnsubscribe = func(id SubscriberIdentifier) {
+			onUnsubscribeInvoked = true
+		}
+
+		st := &singleThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				unsubscribeCallbackFunc: onUnsubscribe,
+			},
+		}
+
+		st.Unsubscribe(SubscriberIdentifier("test-identifier"))
+
+		if onUnsubscribeInvoked == false {
+			t.Error("singleThreadPubSubDriverWrapper.Unsubscribe() did not invoke Unsubscribe from scheduler")
+		}
+	})
+}
+
+func Test_multiThreadPubSubDriverWrapper_UnsubscribeAll(t *testing.T) {
+
+	t.Run("should invoke UnsubscribeAll from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeAllInvoked = false
+		var onUnsubscribeAll = func() {
+			onUnsubscribeAllInvoked = true
+		}
+
+		mt := &multiThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				unsubscribeAllCallbackFunc: onUnsubscribeAll,
+			},
+		}
+
+		mt.UnsubscribeAll()
+
+		if onUnsubscribeAllInvoked == false {
+			t.Error("multiThreadPubSubDriverWrapper.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
+		}
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_UnsubscribeAll(t *testing.T) {
+
+	t.Run("should invoke UnsubscribeAll from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeAllInvoked = false
+		var onUnsubscribeAll = func() {
+			onUnsubscribeAllInvoked = true
+		}
+
+		st := &singleThreadPubSubDriverWrapper{
+			scheduler: observableTestScheduler{
+				unsubscribeAllCallbackFunc: onUnsubscribeAll,
+			},
+		}
+
+		st.UnsubscribeAll()
+
+		if onUnsubscribeAllInvoked == false {
+			t.Error("multiThreadPubSubDriverWrapper.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
+		}
+	})
 }
