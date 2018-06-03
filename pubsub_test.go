@@ -63,3 +63,41 @@ func TestNewPubSubFromDriver(t *testing.T) {
 		}
 	})
 }
+
+func TestNewPubSubFromMultiThreadDriver(t *testing.T) {
+
+	mt, err := loopback.NewMultiThreadDriver()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Run("should return PubSub using multi thread driver wrapper", func(t *testing.T) {
+		psMt, err := NewPubSubFromMultiThreadDriver(mt)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if _, ok := psMt.(multiThreadPubSubDriverWrapper); !ok {
+			t.Error("NewPubSubFromMultiThreadDriver() did not use proper driver wrapper")
+		}
+	})
+}
+
+func TestNewPubSubFromSingleThreadDriver(t *testing.T) {
+
+	st, err := loopback.NewSingleThreadDriver()
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Run("should return PubSub using single thread driver wrapper", func(t *testing.T) {
+		stMt, err := NewPubSubFromSingleThreadDriver(st)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if _, ok := stMt.(singleThreadPubSubDriverWrapper); !ok {
+			t.Error("NewPubSubFromSingleThreadDriver() did not use proper driver wrapper")
+		}
+	})
+}
