@@ -7,20 +7,88 @@ import (
 	"github.com/jakoblorz/brokerutil/driver/loopback"
 )
 
-type dynamicDriverTestScaffold struct {
-	driverType driver.PubSubDriverType
+type observableTestDriver struct {
+	driverType                          driver.PubSubDriverType
+	getDriverTypeCallbackFunc           func() driver.PubSubDriverType
+	getMessageWriterChannelCallbackFunc func() (chan<- interface{}, error)
+	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
+	closeStreamCallbackFunc             func() error
+	openStreamCallbackFunc              func() error
+	checkForPendingMessageCallbackFunc  func() (bool, error)
+	receivePendingMessageCallbackFunc   func() (interface{}, error)
+	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d dynamicDriverTestScaffold) GetDriverType() driver.PubSubDriverType {
+func (d observableTestDriver) GetDriverType() driver.PubSubDriverType {
+
+	if d.getDriverTypeCallbackFunc != nil {
+		return d.getDriverTypeCallbackFunc()
+	}
+
 	return d.driverType
 }
 
-func (d dynamicDriverTestScaffold) CloseStream() error {
+func (d observableTestDriver) CloseStream() error {
+
+	if d.closeStreamCallbackFunc != nil {
+		return d.closeStreamCallbackFunc()
+	}
+
 	return nil
 }
 
-func (d dynamicDriverTestScaffold) OpenStream() error {
+func (d observableTestDriver) OpenStream() error {
+
+	if d.openStreamCallbackFunc != nil {
+		return d.openStreamCallbackFunc()
+	}
+
 	return nil
+}
+
+func (d observableTestDriver) CheckForPendingMessage() (bool, error) {
+
+	if d.checkForPendingMessageCallbackFunc != nil {
+		return d.checkForPendingMessageCallbackFunc()
+	}
+
+	return true, nil
+}
+
+func (d observableTestDriver) ReceivePendingMessage() (interface{}, error) {
+
+	if d.receivePendingMessageCallbackFunc != nil {
+		return d.receivePendingMessageCallbackFunc()
+	}
+
+	return nil, nil
+}
+
+func (d observableTestDriver) PublishMessage(msg interface{}) error {
+
+	if d.publishMessageCallbackFunc != nil {
+		return d.publishMessageCallbackFunc(msg)
+	}
+
+	return nil
+}
+
+func (d observableTestDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+
+	if d.getMessageWriterChannelCallbackFunc != nil {
+		return d.getMessageWriterChannelCallbackFunc()
+	}
+
+	return nil, nil
+}
+
+func (d observableTestDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+
+	if d.getMessageReaderChannelCallbackFunc != nil {
+		return d.getMessageReaderChannelCallbackFunc()
+	}
+
+	return nil, nil
 }
 
 type observableTestScheduler struct {
@@ -103,7 +171,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 			t.Error("NewPubSubFromDriver() did not create proper driver singleThreadPubSubDriverWrapper")
 		}
 
-		_, err = NewPubSubFromDriver(dynamicDriverTestScaffold{
+		_, err = NewPubSubFromDriver(observableTestDriver{
 			driverType: driver.PubSubDriverType(3),
 		})
 
