@@ -181,6 +181,26 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	})
 }
 
+func Test_architectureAwarePubSub_Publish(t *testing.T) {
+
+	t.Run("should enqueue message when publishing", func(t *testing.T) {
+
+		aw := &architectureAwarePubSub{
+			backlog: make(chan interface{}, 1),
+		}
+
+		var msgSend interface{} = "test message"
+
+		aw.Publish(msgSend)
+
+		msgReceive := <-aw.backlog
+
+		if msgSend != msgReceive {
+			t.Error("architectureAwarePubSub.Publish() did not enqueue message")
+		}
+	})
+}
+
 func Test_multiThreadPubSubDriverWrapper_Publish(t *testing.T) {
 
 	t.Run("should enqueue message when publishing", func(t *testing.T) {
@@ -219,6 +239,32 @@ func Test_singleThreadPubSubDriverWrapper_Publish(t *testing.T) {
 
 	})
 
+}
+
+func Test_architectureAwarePubSub_SubscribeAsync(t *testing.T) {
+
+	t.Run("should invoke SubscribeAsync from scheduler", func(t *testing.T) {
+
+		var onSubscribeAsyncInvoked = false
+		var onSubscribeAsync = func(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+			onSubscribeAsyncInvoked = true
+			return nil, ""
+		}
+
+		aw := &architectureAwarePubSub{
+			scheduler: observableTestScheduler{
+				subscribeAsyncCallbackFunc: onSubscribeAsync,
+			},
+		}
+
+		aw.SubscribeAsync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeAsyncInvoked == false {
+			t.Error("architectureAwarePubSub.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
+		}
+	})
 }
 
 func Test_multiThreadPubSubDriverWrapper_SubscribeAsync(t *testing.T) {
@@ -270,6 +316,33 @@ func Test_singleThreadPubSubDriverWrapper_SubscribeAsync(t *testing.T) {
 		if onSubscribeAsyncInvoked == false {
 			t.Error("singleThreadPubSubDriverWrapper.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
 		}
+	})
+}
+
+func Test_architectureAwarePubSub_SubscribeSync(t *testing.T) {
+
+	t.Run("should invoked SubscribeSync from scheduler", func(t *testing.T) {
+
+		var onSubscribeSyncInvoked = false
+		var onSubscribeSync = func(fn SubscriberFunc) error {
+			onSubscribeSyncInvoked = true
+			return nil
+		}
+
+		aw := &architectureAwarePubSub{
+			scheduler: observableTestScheduler{
+				subscribeSyncCallbackFunc: onSubscribeSync,
+			},
+		}
+
+		aw.SubscribeSync(func(msg interface{}) error {
+			return nil
+		})
+
+		if onSubscribeSyncInvoked == false {
+			t.Error("architectureAwarePubSub.SubscribeSync() did not invoke SubscribeSync from scheduler")
+		}
+
 	})
 }
 
@@ -325,6 +398,30 @@ func Test_singleThreadPubSubDriverWrapper_SubscribeSync(t *testing.T) {
 	})
 }
 
+func Test_architectureAwarePubSub_Unsubscribe(t *testing.T) {
+
+	t.Run("should invoke Unsubscribe from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeInvoked = false
+		var onUnsubscribe = func(id SubscriberIdentifier) {
+			onUnsubscribeInvoked = true
+		}
+
+		aw := &architectureAwarePubSub{
+			scheduler: observableTestScheduler{
+				unsubscribeCallbackFunc: onUnsubscribe,
+			},
+		}
+
+		aw.Unsubscribe(SubscriberIdentifier("test-identifier"))
+
+		if onUnsubscribeInvoked == false {
+			t.Error("architectureAwarePubSub.Unsubscribe() did not invoke Unsubscribe from scheduler")
+		}
+
+	})
+}
+
 func Test_multiThreadPubSubDriverWrapper_Unsubscribe(t *testing.T) {
 
 	t.Run("should invoke Unsubscribe from scheduler", func(t *testing.T) {
@@ -371,6 +468,30 @@ func Test_singleThreadPubSubDriverWrapper_Unsubscribe(t *testing.T) {
 	})
 }
 
+func Test_architectureAwarePubSub_UnsubscribeAll(t *testing.T) {
+
+	t.Run("should invoke UnsubscribeAll from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeAllInvoked = false
+		var onUnsubscribeAll = func() {
+			onUnsubscribeAllInvoked = true
+		}
+
+		aw := &architectureAwarePubSub{
+			scheduler: observableTestScheduler{
+				unsubscribeAllCallbackFunc: onUnsubscribeAll,
+			},
+		}
+
+		aw.UnsubscribeAll()
+
+		if onUnsubscribeAllInvoked == false {
+			t.Error("architectureAwarePubSub.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
+		}
+
+	})
+}
+
 func Test_multiThreadPubSubDriverWrapper_UnsubscribeAll(t *testing.T) {
 
 	t.Run("should invoke UnsubscribeAll from scheduler", func(t *testing.T) {
@@ -414,6 +535,20 @@ func Test_singleThreadPubSubDriverWrapper_UnsubscribeAll(t *testing.T) {
 		if onUnsubscribeAllInvoked == false {
 			t.Error("multiThreadPubSubDriverWrapper.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
 		}
+	})
+}
+
+func Test_architectureAwarePubSub_Terminate(t *testing.T) {
+
+	t.Run("should send termination signal in terminate channel", func(t *testing.T) {
+
+		aw := &architectureAwarePubSub{
+			terminate: make(chan int, 1),
+		}
+
+		aw.Terminate()
+
+		<-aw.terminate
 	})
 }
 

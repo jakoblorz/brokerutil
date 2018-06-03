@@ -208,6 +208,11 @@ func (a architectureAwarePubSub) Listen() error {
 	}
 }
 
+func (a architectureAwarePubSub) Terminate() error {
+	a.terminate <- 1
+	return nil
+}
+
 type multiThreadPubSubDriverWrapper struct {
 	driver    driver.MultiThreadPubSubDriverScaffold
 	scheduler scheduler
