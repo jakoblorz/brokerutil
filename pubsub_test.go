@@ -101,3 +101,43 @@ func TestNewPubSubFromSingleThreadDriver(t *testing.T) {
 		}
 	})
 }
+
+func Test_multiThreadPubSubDriverWrapper_Publish(t *testing.T) {
+
+	t.Run("should enqueue message when publishing", func(t *testing.T) {
+		mt := &multiThreadPubSubDriverWrapper{
+			backlog: make(chan interface{}, 1),
+		}
+
+		var msgSend interface{} = "test message"
+
+		mt.Publish(msgSend)
+
+		msgReceive := <-mt.backlog
+
+		if msgSend != msgReceive {
+			t.Error("multiThreadPubSubDriverWrapper.Publish() did not enqueue message")
+		}
+	})
+}
+
+func Test_singleThreadPubSubDriverWrapper_Publish(t *testing.T) {
+
+	t.Run("should enqueue message when publishing", func(t *testing.T) {
+		st := &singleThreadPubSubDriverWrapper{
+			backlog: make(chan interface{}, 1),
+		}
+
+		var msgSend interface{} = "test message"
+
+		st.Publish(msgSend)
+
+		msgReceive := <-st.backlog
+
+		if msgSend != msgReceive {
+			t.Error("singleThreadPubSubDriverWrapper.Publish() did not enqueue message")
+		}
+
+	})
+
+}
