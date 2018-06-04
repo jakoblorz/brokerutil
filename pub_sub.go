@@ -200,7 +200,10 @@ func (a PubSub) ListenSync() error {
 					return err
 				}
 
-				a.scheduler.NotifySubscribers(msg)
+				err = a.scheduler.NotifySubscribers(msg)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
