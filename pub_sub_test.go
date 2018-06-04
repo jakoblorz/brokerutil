@@ -612,6 +612,119 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				t.Error("PubSub.ListenSync() did not return error from GetMessageReaderChannel from driver")
 			}
 		})
+
+		t.Run("should relay messages from backlog into tx channel", func(t *testing.T) {
+
+			var message = "test message"
+			var messageWriterChannel = make(chan interface{}, 1)
+			var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+				return messageWriterChannel, nil
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+
+				ps.backlog <- message
+
+				ps.Terminate()
+			}()
+
+			ps.ListenSync()
+
+			if !reflect.DeepEqual(message, <-messageWriterChannel) {
+				t.Error("PubSub.ListenSync() did not relay messages from backlog into tx channel")
+			}
+		})
+
+		t.Run("should invoke NotifySubscribers when message was recieved on rx channel", func(t *testing.T) {
+
+			var message = "test message"
+			var messageReaderChannel = make(chan interface{}, 1)
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				return messageReaderChannel, nil
+			}
+			var onNotifySubscribers = func(msg interface{}) error {
+
+				if !reflect.DeepEqual(msg, message) {
+					t.Error("PubSub.ListenSync() did not invoke NotifySubscribers when message was recieved on rx channel")
+				}
+
+				return nil
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			ps.scheduler = observableTestScheduler{
+				notifySchedulerCallbackFunc: onNotifySubscribers,
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+
+				messageReaderChannel <- message
+
+				ps.Terminate()
+			}()
+
+			ps.ListenSync()
+		})
+
+		t.Run("should return error from NotifySubscribers when message was recieved on rx channel", func(t *testing.T) {
+
+			var message = "test message"
+			var messageReaderChannel = make(chan interface{}, 1)
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				return messageReaderChannel, nil
+			}
+			var onNotifySubscribersError = errors.New("test error")
+			var onNotifySubscribers = func(msg interface{}) error {
+				return onNotifySubscribersError
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			ps.scheduler = observableTestScheduler{
+				notifySchedulerCallbackFunc: onNotifySubscribers,
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+
+				messageReaderChannel <- message
+
+				ps.Terminate()
+			}()
+
+			err = ps.ListenSync()
+
+			if !reflect.DeepEqual(err, onNotifySubscribersError) {
+				t.Error("PubSub.ListenSync() did not return error from NotifySubscribers when message was recieved on rx channel")
+			}
+
+		})
 	})
 
 	t.Run("blocking behaviour test", func(t *testing.T) {

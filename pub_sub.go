@@ -211,6 +211,20 @@ func (a PubSub) ListenSync() error {
 //
 // Subscribers will be unsubscribed was well.
 func (a PubSub) Terminate() error {
-	a.terminate <- 1
+
+	// send single termination signal for
+	// blocking driver
+	var signalCount = 1
+
+	// send two termination signal for concurrent
+	// driver
+	if a.supportsConcurrency {
+		signalCount = 2
+	}
+
+	for i := 0; i < signalCount; i++ {
+		a.terminate <- 1
+	}
+
 	return nil
 }
