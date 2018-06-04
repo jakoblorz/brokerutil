@@ -3,6 +3,7 @@ brokerutil provides a common interface to message-brokers for pub-sub applicatio
 
 [![GoDoc](https://godoc.org/github.com/jakoblorz/brokerutil?status.svg)](https://godoc.org/github.com/jakoblorz/brokerutil)
 [![Build Status](https://travis-ci.com/jakoblorz/brokerutil.svg?branch=master)](https://travis-ci.com/jakoblorz/brokerutil)
+[![codecov](https://codecov.io/gh/jakoblorz/brokerutil/branch/master/graph/badge.svg)](https://codecov.io/gh/jakoblorz/brokerutil)
 
 Use brokerutil to be able to build pub-sub applications which are not
 highly dependent on the message-brokers drivers implementation.
