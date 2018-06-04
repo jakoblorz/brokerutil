@@ -1,7 +1,10 @@
 package brokerutil
 
 import (
+	"errors"
+	"reflect"
 	"testing"
+	"time"
 )
 
 type observableTestDriver struct {
@@ -252,7 +255,7 @@ func Test_PubSub_Publish(t *testing.T) {
 		msgReceive := <-aw.backlog
 
 		if msgSend != msgReceive {
-			t.Error("architectureAwarePubSub.Publish() did not enqueue message")
+			t.Error("PubSub.Publish() did not enqueue message")
 		}
 	})
 }
@@ -278,7 +281,7 @@ func Test_PubSub_SubscribeAsync(t *testing.T) {
 		})
 
 		if onSubscribeAsyncInvoked == false {
-			t.Error("architectureAwarePubSub.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
+			t.Error("PubSub.SubscribeAsync() did not invoke SubscribeAsync from scheduler")
 		}
 	})
 }
@@ -304,7 +307,7 @@ func Test_PubSub_SubscribeSync(t *testing.T) {
 		})
 
 		if onSubscribeSyncInvoked == false {
-			t.Error("architectureAwarePubSub.SubscribeSync() did not invoke SubscribeSync from scheduler")
+			t.Error("PubSub.SubscribeSync() did not invoke SubscribeSync from scheduler")
 		}
 
 	})
@@ -328,7 +331,7 @@ func Test_PubSub_Unsubscribe(t *testing.T) {
 		aw.Unsubscribe(SubscriberIdentifier("test-identifier"))
 
 		if onUnsubscribeInvoked == false {
-			t.Error("architectureAwarePubSub.Unsubscribe() did not invoke Unsubscribe from scheduler")
+			t.Error("PubSub.Unsubscribe() did not invoke Unsubscribe from scheduler")
 		}
 
 	})
@@ -352,9 +355,96 @@ func Test_PubSub_UnsubscribeAll(t *testing.T) {
 		aw.UnsubscribeAll()
 
 		if onUnsubscribeAllInvoked == false {
-			t.Error("architectureAwarePubSub.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
+			t.Error("PubSub.UnsubscribeAll() did not invoke UnsubscribeAll from scheduler")
 		}
 
+	})
+}
+
+func Test_PubSub_ListenSync(t *testing.T) {
+
+	t.Run("should invoke OpenStream from driver", func(t *testing.T) {
+
+		var onOpenStreamInvoked = false
+		var onOpenStream = func() error {
+			onOpenStreamInvoked = true
+			return nil
+		}
+
+		ps, err := NewPubSubFromDriver(observableTestDriver{
+			executionFlag:          RequiresBlockingExecution,
+			openStreamCallbackFunc: onOpenStream,
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			ps.Terminate()
+		}()
+
+		ps.ListenSync()
+
+		if onOpenStreamInvoked == false {
+			t.Error("PubSub.ListenSync() did not invoke OpenStream from driver")
+		}
+	})
+
+	t.Run("should return error from OpenStream from driver", func(t *testing.T) {
+		var onOpenStreamError = errors.New("test error")
+		var onOpenStream = func() error {
+			return onOpenStreamError
+		}
+
+		ps, err := NewPubSubFromDriver(observableTestDriver{
+			executionFlag:          RequiresBlockingExecution,
+			openStreamCallbackFunc: onOpenStream,
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			ps.Terminate()
+		}()
+
+		err = ps.ListenSync()
+		if !reflect.DeepEqual(err, onOpenStreamError) {
+			t.Error("PubSub.ListenSync() did not return error from OpenStream from driver")
+		}
+	})
+
+	t.Run("should invoke CloseStream from driver", func(t *testing.T) {
+
+		var onCloseStreamInvoked = false
+		var onCloseStream = func() error {
+			onCloseStreamInvoked = true
+			return nil
+		}
+
+		ps, err := NewPubSubFromDriver(observableTestDriver{
+			executionFlag:           RequiresBlockingExecution,
+			closeStreamCallbackFunc: onCloseStream,
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			ps.Terminate()
+		}()
+
+		ps.ListenSync()
+
+		if onCloseStreamInvoked == false {
+			t.Error("PubSub.ListenSync() did not invoke CloseStream from driver")
+		}
 	})
 }
 
