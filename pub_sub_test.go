@@ -7,8 +7,8 @@ import (
 )
 
 type observableTestDriver struct {
-	driverType                          driver.PubSubDriverType
-	getDriverTypeCallbackFunc           func() driver.PubSubDriverType
+	driverType                          driver.Flag
+	getDriverTypeCallbackFunc           func() driver.Flag
 	getMessageWriterChannelCallbackFunc func() (chan<- interface{}, error)
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
@@ -18,7 +18,7 @@ type observableTestDriver struct {
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d observableTestDriver) GetDriverType() driver.PubSubDriverType {
+func (d observableTestDriver) GetDriverType() driver.Flag {
 
 	if d.getDriverTypeCallbackFunc != nil {
 		return d.getDriverTypeCallbackFunc()
@@ -144,7 +144,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			driverType: driver.MultiThreadPubSubDriver,
+			driverType: driver.SupportsConcurrency,
 		}
 
 		ps, err := NewPubSubFromDriver(d)
@@ -160,7 +160,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to false when supporting driver is not present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			driverType: driver.SingleThreadPubSubDriver,
+			driverType: driver.BlocksConcurrency,
 		}
 
 		ps, err := NewPubSubFromDriver(d)

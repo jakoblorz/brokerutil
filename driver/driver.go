@@ -1,20 +1,20 @@
 package driver
 
-// PubSubDriverType should reflect the ability of a driver to be used
+// Flag should reflect the ability of a driver to be used
 // in concurrent environments
-type PubSubDriverType int
+type Flag int
 
 const (
 
-	// MultiThreadPubSubDriver is the Type value used to
+	// SupportsConcurrency is the Type value used to
 	// indicate that the pub sub driver supports concurrent
 	// use
-	MultiThreadPubSubDriver PubSubDriverType = iota
+	SupportsConcurrency Flag = iota
 
-	// SingleThreadPubSubDriver is the Type value used to
+	// BlocksConcurrency is the Type value used to
 	// indicate that the pub sub driver does not support
 	// concurrent use
-	SingleThreadPubSubDriver PubSubDriverType = iota
+	BlocksConcurrency Flag = iota
 )
 
 // PubSubDriverScaffold is the simplest pub sub driver
@@ -24,7 +24,7 @@ type PubSubDriverScaffold interface {
 	// GetDriverType should reflect the ability of the driver to
 	// be used in concurrent environments such as multiple
 	// goroutines pub'n'subbing concurrently
-	GetDriverType() PubSubDriverType
+	GetDriverType() Flag
 
 	// CloseStream is called by the driver consumer when
 	// the pub-sub stream is to be closed

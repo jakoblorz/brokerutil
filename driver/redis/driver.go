@@ -27,8 +27,8 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) GetDriverType() driver.PubSubDriverType {
-	return driver.SingleThreadPubSubDriver
+func (d Driver) GetDriverType() driver.Flag {
+	return driver.BlocksConcurrency
 }
 
 func (d Driver) CloseStream() error {

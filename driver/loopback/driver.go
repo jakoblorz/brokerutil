@@ -8,12 +8,12 @@ import (
 // SingleThreadPubSubDriverScaffold interface and the
 // MultiThreadPubSubDriverScaffold interface
 type Driver struct {
-	driverType driver.PubSubDriverType
+	driverType driver.Flag
 	channel    chan interface{}
 }
 
 // NewDriver returns a new loopback driver
-func NewDriver(driverType driver.PubSubDriverType) (*Driver, error) {
+func NewDriver(driverType driver.Flag) (*Driver, error) {
 	return &Driver{
 		driverType: driverType,
 		channel:    make(chan interface{}),
@@ -22,17 +22,17 @@ func NewDriver(driverType driver.PubSubDriverType) (*Driver, error) {
 
 // NewSingleThreadDriver returns a new loopback driver as single thread driver
 func NewSingleThreadDriver() (driver.SingleThreadPubSubDriverScaffold, error) {
-	return NewDriver(driver.SingleThreadPubSubDriver)
+	return NewDriver(driver.BlocksConcurrency)
 }
 
 // NewMultiThreadDriver returns a new loopback driver as multi thread driver
 func NewMultiThreadDriver() (driver.MultiThreadPubSubDriverScaffold, error) {
-	return NewDriver(driver.MultiThreadPubSubDriver)
+	return NewDriver(driver.SupportsConcurrency)
 }
 
 // GetDriverType returns the driver type to indicate the
 // ability to be used in concurrent environments
-func (d Driver) GetDriverType() driver.PubSubDriverType {
+func (d Driver) GetDriverType() driver.Flag {
 	return d.driverType
 }
 
