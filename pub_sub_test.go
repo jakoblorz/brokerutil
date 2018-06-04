@@ -88,6 +88,37 @@ func (d observableTestDriver) GetMessageReaderChannel() (<-chan interface{}, err
 	return nil, nil
 }
 
+type pubSubScaffoldImplementation struct {
+	executionFlag Flag
+}
+
+func (i pubSubScaffoldImplementation) GetDriverFlags() []Flag {
+	return []Flag{i.executionFlag}
+}
+
+func (i pubSubScaffoldImplementation) CloseStream() error {
+	return nil
+}
+
+func (i pubSubScaffoldImplementation) OpenStream() error {
+	return nil
+}
+
+type missingExecutionFlagPubSub struct {
+}
+
+func (missingExecutionFlagPubSub) GetDriverFlags() []Flag {
+	return []Flag{}
+}
+
+func (missingExecutionFlagPubSub) CloseStream() error {
+	return nil
+}
+
+func (missingExecutionFlagPubSub) OpenStream() error {
+	return nil
+}
+
 type observableTestScheduler struct {
 	notifySchedulerCallbackFunc func(interface{}) error
 	subscribeAsyncCallbackFunc  func(SubscriberFunc) (chan error, SubscriberIdentifier)
@@ -168,6 +199,40 @@ func TestNewPubSubFromDriver(t *testing.T) {
 
 		if ps.supportsConcurrency == true {
 			t.Error("NewPubSubFromDriver() did not set correct supportsConcurrency flag")
+		}
+	})
+
+	t.Run("should return error when calling with incompatible concurrent driver", func(t *testing.T) {
+
+		d := pubSubScaffoldImplementation{
+			executionFlag: RequiresConcurrentExecution,
+		}
+
+		_, err := NewPubSubFromDriver(d)
+		if err == nil {
+			t.Error("NewPubSubFromDriver() did not return error when calling with incompatible concurrent driver")
+		}
+	})
+
+	t.Run("should return error when calling with incompatible blocking driver", func(t *testing.T) {
+
+		d := pubSubScaffoldImplementation{
+			executionFlag: RequiresBlockingExecution,
+		}
+
+		_, err := NewPubSubFromDriver(d)
+		if err == nil {
+			t.Error("NewPubSubFromDriver() did not return error when calling with incompatible blocking driver")
+		}
+	})
+
+	t.Run("should return error when driver does not return execution flag", func(t *testing.T) {
+
+		d := missingExecutionFlagPubSub{}
+
+		_, err := NewPubSubFromDriver(d)
+		if err == nil {
+			t.Error("NewPubSubFromDriver() did not return error when driver does not return execution flag")
 		}
 	})
 }
