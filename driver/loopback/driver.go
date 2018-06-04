@@ -30,9 +30,9 @@ func NewMultiThreadDriver() (driver.MultiThreadPubSubDriverScaffold, error) {
 	return NewDriver(driver.SupportsConcurrency)
 }
 
-// GetDriverType returns the driver type to indicate the
+// GetDriverFlags returns the driver type to indicate the
 // ability to be used in concurrent environments
-func (d Driver) GetDriverType() driver.Flag {
+func (d Driver) GetDriverFlags() driver.Flag {
 	return d.driverType
 }
 

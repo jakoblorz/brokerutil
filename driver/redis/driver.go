@@ -27,7 +27,7 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) GetDriverType() driver.Flag {
+func (d Driver) GetDriverFlags() driver.Flag {
 	return driver.BlocksConcurrency
 }
 

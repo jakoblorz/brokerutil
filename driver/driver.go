@@ -21,10 +21,10 @@ const (
 // requirement to be used initially
 type PubSubDriverScaffold interface {
 
-	// GetDriverType should reflect the ability of the driver to
+	// GetDriverFlags should reflect the ability of the driver to
 	// be used in concurrent environments such as multiple
 	// goroutines pub'n'subbing concurrently
-	GetDriverType() Flag
+	GetDriverFlags() Flag
 
 	// CloseStream is called by the driver consumer when
 	// the pub-sub stream is to be closed

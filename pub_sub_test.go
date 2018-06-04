@@ -18,7 +18,7 @@ type observableTestDriver struct {
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d observableTestDriver) GetDriverType() driver.Flag {
+func (d observableTestDriver) GetDriverFlags() driver.Flag {
 
 	if d.getDriverTypeCallbackFunc != nil {
 		return d.getDriverTypeCallbackFunc()

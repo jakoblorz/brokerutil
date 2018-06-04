@@ -26,7 +26,7 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (*PubSub, error) {
 
 	var supportsConcurrency = false
 
-	if d.GetDriverType() == driver.SupportsConcurrency {
+	if d.GetDriverFlags() == driver.SupportsConcurrency {
 		_, ok := d.(driver.MultiThreadPubSubDriverScaffold)
 
 		if !ok {
@@ -36,7 +36,7 @@ func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (*PubSub, error) {
 		supportsConcurrency = true
 	}
 
-	if d.GetDriverType() == driver.BlocksConcurrency {
+	if d.GetDriverFlags() == driver.BlocksConcurrency {
 		_, ok := d.(driver.SingleThreadPubSubDriverScaffold)
 
 		if !ok {
