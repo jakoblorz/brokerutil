@@ -15,45 +15,49 @@ pub-sub logic.
 
 `go get github.com/jakoblorz/brokerutil`
 
-Use the native drivers in the driver package or implement your own. Currently provided drivers:
-- [redis](https://redis.io/) `go get github.com/jakoblorz/brokerutil/driver/redis`
-- loopback (for testing) `go get github.com/jakoblorz/brokerutil/driver/loopback`
+Use the package drivers or implement your own. Currently provided drivers:
+- [redis](https://redis.io/) `go get github.com/jakoblorz/brokerutil/redis`
+- loopback `go get github.com/jakoblorz/brokerutil/loopback`
 
 ## Example
-This example will use redis as message-broker. It uses the brokerutil native redis driver which
-relies on the [github.com/go-redis/redis](http://github.com/go-redis/redis) driver.
+This example will use redis as message-broker. It uses the package redis driver which
+extends on the [github.com/go-redis/redis](http://github.com/go-redis/redis) driver.
 
 ```go
 package main
 
 import (
+    "flag"
+
     "github.com/jakoblorz/brokerutil"
     "github.com/jakoblorz/brokerutil/redis"
     r "github.com/go-redis/redis"
 )
 
+var (
+    raddr   = flag.String("raddr", ":6379", "redis address to connect to")
+    channel = flag.String("channel", "brokerutil", "redis message channel")
+)
+
 func main() {
+    flag.Parse()
 
     // create redis driver to support pub-sub
     driver, err := redis.NewDriver(&redis.DriverOptions{
-        channel: "brokerutil-chan",
+        channel: *channel,
         driver:  &r.Options{
-            Addr:     "localhost:6379",
-            Password: "",
-            DB:       0
+            Addr:     *raddr,
         },
     })
 
     if err != nil {
-        log.Fatalf("could not create brokerutil redis driver: %v", err)
-        return
+        log.Fatalf("could not create redis driver: %v", err)
     }
 
     // create new pub sub using the initialized redis driver
     ps, err := brokerutil.NewPubSubFromDriver(driver)
     if err != nil {
-        log.Fatalf("could not create brokerutil pub sub: %v", err)
-        return
+        log.Fatalf("could not create pub sub: %v", err)
     }
 
     // run blocking subscribe as go routine
@@ -65,8 +69,7 @@ func main() {
 
     // start controller routine which blocks execution
     if err := ps.ListenSync(); err != nil {
-        log.Fatalf("could not run controller routine: %v", err)
-        return
+        log.Fatalf("could not listen: %v", err)
     }
 }
 ```
