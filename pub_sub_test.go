@@ -361,6 +361,51 @@ func Test_PubSub_UnsubscribeAll(t *testing.T) {
 	})
 }
 
+func Test_PubSub_ListenAsync(t *testing.T) {
+
+	t.Run("should return error channel", func(t *testing.T) {
+
+		ps, err := NewPubSubFromDriver(observableTestDriver{})
+		if err != nil {
+			t.Error(err)
+		}
+
+		errChan := ps.ListenAsync()
+
+		defer ps.Terminate()
+
+		if errChan == nil {
+			t.Error("PubSub.ListenAsync() did not return error channel")
+		}
+	})
+
+	// t.Run("should return error channel containing errors from ListenSync", func(t *testing.T) {
+
+	// 	var onOpenStreamError = errors.New("test error")
+	// 	var onOpenStream = func() error {
+	// 		return onOpenStreamError
+	// 	}
+
+	// 	ps, err := NewPubSubFromDriver(observableTestDriver{
+	// 		openStreamCallbackFunc: onOpenStream,
+	// 	})
+
+	// 	if err != nil {
+	// 		t.Error(err)
+	// 	}
+
+	// 	errChan := ps.ListenAsync()
+
+	// 	defer ps.Terminate()
+
+	// 	time.Sleep(10 * time.Millisecond)
+
+	// 	if !reflect.DeepEqual(<-errChan, onOpenStreamError) {
+	// 		t.Error("PubSub.ListenAsync() did not return error channel containing errors from ListenSync")
+	// 	}
+	// })
+}
+
 func Test_PubSub_ListenSync(t *testing.T) {
 
 	t.Run("should invoke OpenStream from driver", func(t *testing.T) {
