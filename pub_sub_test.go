@@ -498,6 +498,120 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				t.Error("PubSub.ListenSync() did not return error when trying to cast concurrent driver interface")
 			}
 		})
+
+		t.Run("should invoke GetMessageWriterChannel from driver", func(t *testing.T) {
+
+			var onGetMessageWriterChannelInvoked = false
+			var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+				onGetMessageWriterChannelInvoked = true
+				return make(chan<- interface{}), nil
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				ps.Terminate()
+			}()
+
+			ps.ListenSync()
+
+			if onGetMessageWriterChannelInvoked == false {
+				t.Error("PubSub.ListenSync() did not invoke GetMessageWriterChannel from driver")
+			}
+		})
+
+		t.Run("should return error from GetMessageWriterChannel from driver", func(t *testing.T) {
+
+			var onGetMessageWriterChannelError = errors.New("test error")
+			var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+				return nil, onGetMessageWriterChannelError
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				ps.Terminate()
+			}()
+
+			err = ps.ListenSync()
+
+			if !reflect.DeepEqual(err, onGetMessageWriterChannelError) {
+				t.Error("PubSub.ListenSync() did not return error from GetMessageWriterChannel from driver")
+			}
+		})
+
+		t.Run("should invoke GetMessageReaderChannel from driver", func(t *testing.T) {
+
+			var onGetMessageReaderChannelInvoked = false
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				onGetMessageReaderChannelInvoked = true
+				return make(<-chan interface{}), nil
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				ps.Terminate()
+			}()
+
+			ps.ListenSync()
+
+			if onGetMessageReaderChannelInvoked == false {
+				t.Error("PubSub.ListenSync() did not invoke GetMessageReaderChannel from driver")
+			}
+		})
+
+		t.Run("should return error from GetMessageReaderChannel from driver", func(t *testing.T) {
+
+			var onGetMessageReaderChannelError = errors.New("test error")
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				return nil, onGetMessageReaderChannelError
+			}
+
+			ps, err := NewPubSubFromDriver(observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			})
+
+			if err != nil {
+				t.Error(err)
+			}
+
+			go func() {
+				time.Sleep(10 * time.Millisecond)
+				ps.Terminate()
+			}()
+
+			err = ps.ListenSync()
+
+			if !reflect.DeepEqual(err, onGetMessageReaderChannelError) {
+				t.Error("PubSub.ListenSync() did not return error from GetMessageReaderChannel from driver")
+			}
+		})
 	})
 
 	t.Run("blocking behaviour test", func(t *testing.T) {
