@@ -27,8 +27,8 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) GetDriverFlags() driver.Flag {
-	return driver.BlocksConcurrency
+func (d Driver) GetDriverFlags() []driver.Flag {
+	return []driver.Flag{driver.RequiresBlockingExecution}
 }
 
 func (d Driver) CloseStream() error {

@@ -7,8 +7,8 @@ import (
 )
 
 type observableTestDriver struct {
-	driverType                          driver.Flag
-	getDriverTypeCallbackFunc           func() driver.Flag
+	executionFlag                       driver.Flag
+	getDriverTypeCallbackFunc           func() []driver.Flag
 	getMessageWriterChannelCallbackFunc func() (chan<- interface{}, error)
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
@@ -18,13 +18,13 @@ type observableTestDriver struct {
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d observableTestDriver) GetDriverFlags() driver.Flag {
+func (d observableTestDriver) GetDriverFlags() []driver.Flag {
 
 	if d.getDriverTypeCallbackFunc != nil {
 		return d.getDriverTypeCallbackFunc()
 	}
 
-	return d.driverType
+	return []driver.Flag{d.executionFlag}
 }
 
 func (d observableTestDriver) CloseStream() error {
@@ -144,7 +144,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			driverType: driver.SupportsConcurrency,
+			executionFlag: driver.RequiresConcurrentExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(d)
@@ -160,7 +160,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to false when supporting driver is not present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			driverType: driver.BlocksConcurrency,
+			executionFlag: driver.RequiresBlockingExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(d)

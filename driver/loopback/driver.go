@@ -8,32 +8,32 @@ import (
 // SingleThreadPubSubDriverScaffold interface and the
 // MultiThreadPubSubDriverScaffold interface
 type Driver struct {
-	driverType driver.Flag
-	channel    chan interface{}
+	executionFlag driver.Flag
+	channel       chan interface{}
 }
 
 // NewDriver returns a new loopback driver
-func NewDriver(driverType driver.Flag) (*Driver, error) {
+func NewDriver(executionFlag driver.Flag) (*Driver, error) {
 	return &Driver{
-		driverType: driverType,
-		channel:    make(chan interface{}),
+		executionFlag: executionFlag,
+		channel:       make(chan interface{}),
 	}, nil
 }
 
-// NewSingleThreadDriver returns a new loopback driver as single thread driver
-func NewSingleThreadDriver() (driver.SingleThreadPubSubDriverScaffold, error) {
-	return NewDriver(driver.BlocksConcurrency)
+// NewBlockingDriver returns a new loopback driver as single thread driver
+func NewBlockingDriver() (driver.BlockingPubSubDriverScaffold, error) {
+	return NewDriver(driver.RequiresBlockingExecution)
 }
 
-// NewMultiThreadDriver returns a new loopback driver as multi thread driver
-func NewMultiThreadDriver() (driver.MultiThreadPubSubDriverScaffold, error) {
-	return NewDriver(driver.SupportsConcurrency)
+// NewConcurrentDriver returns a new loopback driver as multi thread driver
+func NewConcurrentDriver() (driver.ConcurrentPubSubDriverScaffold, error) {
+	return NewDriver(driver.RequiresConcurrentExecution)
 }
 
 // GetDriverFlags returns the driver type to indicate the
 // ability to be used in concurrent environments
-func (d Driver) GetDriverFlags() driver.Flag {
-	return d.driverType
+func (d Driver) GetDriverFlags() []driver.Flag {
+	return []driver.Flag{d.executionFlag}
 }
 
 // CloseStream can be called to close the stream

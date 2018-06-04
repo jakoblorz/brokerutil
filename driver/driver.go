@@ -6,15 +6,15 @@ type Flag int
 
 const (
 
-	// SupportsConcurrency is the Type value used to
+	// RequiresConcurrentExecution is the Type value used to
 	// indicate that the pub sub driver supports concurrent
 	// use
-	SupportsConcurrency Flag = iota
+	RequiresConcurrentExecution Flag = iota
 
-	// BlocksConcurrency is the Type value used to
+	// RequiresBlockingExecution is the Type value used to
 	// indicate that the pub sub driver does not support
 	// concurrent use
-	BlocksConcurrency Flag = iota
+	RequiresBlockingExecution Flag = iota
 )
 
 // PubSubDriverScaffold is the simplest pub sub driver
@@ -24,7 +24,7 @@ type PubSubDriverScaffold interface {
 	// GetDriverFlags should reflect the ability of the driver to
 	// be used in concurrent environments such as multiple
 	// goroutines pub'n'subbing concurrently
-	GetDriverFlags() Flag
+	GetDriverFlags() []Flag
 
 	// CloseStream is called by the driver consumer when
 	// the pub-sub stream is to be closed
@@ -35,14 +35,14 @@ type PubSubDriverScaffold interface {
 	OpenStream() error
 }
 
-// SingleThreadPubSubDriverScaffold is the implementation
+// BlockingPubSubDriverScaffold is the implementation
 // contract for a pub sub driver which does not support concurrent
 // use
 //
 // NotifyMessageRecieve() and NotifyMessageTest() can both be blocking,
 // but no message will be sent / published during that block to follow
 // the unsupported concurrent use restriction.
-type SingleThreadPubSubDriverScaffold interface {
+type BlockingPubSubDriverScaffold interface {
 	PubSubDriverScaffold
 
 	// CheckForPendingMessage is called by the driver consumer to
@@ -64,10 +64,10 @@ type SingleThreadPubSubDriverScaffold interface {
 	PublishMessage(interface{}) error
 }
 
-// MultiThreadPubSubDriverScaffold is the implementation
+// ConcurrentPubSubDriverScaffold is the implementation
 // contract for a pub sub driver which does support concurrent
 // use.
-type MultiThreadPubSubDriverScaffold interface {
+type ConcurrentPubSubDriverScaffold interface {
 	PubSubDriverScaffold
 
 	// GetMessageWriterChannel is called by the driver consumer

@@ -1,10 +1,12 @@
 package brokerutil
 
-func contains(slice []interface{}, key interface{}, compareFn func(interface{}, interface{}) bool) bool {
+import "github.com/jakoblorz/brokerutil/driver"
+
+func containsFlag(slice []driver.Flag, flag driver.Flag) bool {
 
 	for _, s := range slice {
 
-		if compareFn(key, s) {
+		if s == flag {
 			return true
 		}
 	}

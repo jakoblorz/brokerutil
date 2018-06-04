@@ -24,26 +24,26 @@ type PubSub struct {
 // a different PubSub implementation will be chosen.
 func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (*PubSub, error) {
 
-	var supportsConcurrency = false
+	var supportsConcurrency bool
 
-	if d.GetDriverFlags() == driver.SupportsConcurrency {
-		_, ok := d.(driver.MultiThreadPubSubDriverScaffold)
+	if containsFlag(d.GetDriverFlags(), driver.RequiresConcurrentExecution) {
+		_, ok := d.(driver.ConcurrentPubSubDriverScaffold)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to concurrency supporting driver")
 		}
 
 		supportsConcurrency = true
-	}
-
-	if d.GetDriverFlags() == driver.BlocksConcurrency {
-		_, ok := d.(driver.SingleThreadPubSubDriverScaffold)
+	} else if containsFlag(d.GetDriverFlags(), driver.RequiresBlockingExecution) {
+		_, ok := d.(driver.BlockingPubSubDriverScaffold)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to plain driver")
 		}
 
 		supportsConcurrency = false
+	} else {
+		return nil, errors.New("could not create execution plan for given driver - flags do not reflect requirements")
 	}
 
 	return &PubSub{
@@ -127,7 +127,7 @@ func (a PubSub) ListenSync() error {
 	//
 	if a.supportsConcurrency {
 
-		d, ok := a.driver.(driver.MultiThreadPubSubDriverScaffold)
+		d, ok := a.driver.(driver.ConcurrentPubSubDriverScaffold)
 
 		if !ok {
 			return errors.New("driver does not support concurrency, could not cast to correct interface")
@@ -173,7 +173,7 @@ func (a PubSub) ListenSync() error {
 	// such as recieving and writing from different goroutines
 	//
 
-	d, ok := a.driver.(driver.SingleThreadPubSubDriverScaffold)
+	d, ok := a.driver.(driver.BlockingPubSubDriverScaffold)
 
 	if !ok {
 		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")
