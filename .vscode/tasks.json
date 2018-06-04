@@ -1,0 +1,11 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "docker run redis:4-alpine",
+            "type": "shell",
+            "command": "(docker rm -f redis || true) && docker run -p 127.0.0.1:6379:6379 --name redis -d redis:4-alpine",
+            "problemMatcher": []
+        },
+    ]
+}
