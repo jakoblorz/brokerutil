@@ -45,7 +45,7 @@ func (d observableTestDriver) OpenStream() error {
 	return nil
 }
 
-func (d observableTestDriver) ReceivePendingMessage() (interface{}, error) {
+func (d observableTestDriver) ReceiveMessage() (interface{}, error) {
 
 	if d.receivePendingMessageCallbackFunc != nil {
 		return d.receivePendingMessageCallbackFunc()
