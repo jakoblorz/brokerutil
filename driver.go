@@ -45,19 +45,11 @@ type PubSubDriverScaffold interface {
 type BlockingPubSubDriverScaffold interface {
 	PubSubDriverScaffold
 
-	// CheckForPendingMessage is called by the driver consumer to
-	// test if a message can be recieved / is pending so that
-	// waiting for the message is viable.
+	// ReceiveMessage is called by the driver consumer to
+	// recieve a message
 	//
-	// CheckForPendingMessage can be blocking
-	CheckForPendingMessage() (bool, error)
-
-	// ReceivePendingMessage is called by the driver consumer to
-	// recieve a message which might have be previously indicated
-	// as a true value from NotifyMessageTest().
-	//
-	// ReceivePendingMessage can be blocking
-	ReceivePendingMessage() (interface{}, error)
+	// ReceiveMessage can be blocking
+	ReceiveMessage() (interface{}, error)
 
 	// PublishMessage is called by the driver consumer to
 	// publish a message.

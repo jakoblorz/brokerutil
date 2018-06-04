@@ -14,7 +14,6 @@ type observableTestDriver struct {
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
 	openStreamCallbackFunc              func() error
-	checkForPendingMessageCallbackFunc  func() (bool, error)
 	receivePendingMessageCallbackFunc   func() (interface{}, error)
 	publishMessageCallbackFunc          func(interface{}) error
 }
@@ -44,15 +43,6 @@ func (d observableTestDriver) OpenStream() error {
 	}
 
 	return nil
-}
-
-func (d observableTestDriver) CheckForPendingMessage() (bool, error) {
-
-	if d.checkForPendingMessageCallbackFunc != nil {
-		return d.checkForPendingMessageCallbackFunc()
-	}
-
-	return true, nil
 }
 
 func (d observableTestDriver) ReceivePendingMessage() (interface{}, error) {
@@ -862,65 +852,6 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 		})
 
-		t.Run("should invoke CheckForPendingMessage from driver", func(t *testing.T) {
-
-			var onCheckForPendingMessageInvoked = false
-			var onCheckForPendingMessage = func() (bool, error) {
-				onCheckForPendingMessageInvoked = true
-				return false, nil
-			}
-
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                      RequiresBlockingExecution,
-				checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-			})
-
-			if err != nil {
-				t.Error(err)
-			}
-
-			go func() {
-				time.Sleep(10 * time.Millisecond)
-
-				ps.Terminate()
-			}()
-
-			ps.ListenSync()
-
-			if onCheckForPendingMessageInvoked == false {
-				t.Error("PubSub.ListenSync() did not invoke CheckForPendingMessage from driver")
-			}
-		})
-
-		t.Run("should return error from CheckForPendingMessage from driver", func(t *testing.T) {
-
-			var onCheckForPendingMessageError = errors.New("test message")
-			var onCheckForPendingMessage = func() (bool, error) {
-				return false, onCheckForPendingMessageError
-			}
-
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                      RequiresBlockingExecution,
-				checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-			})
-
-			if err != nil {
-				t.Error(err)
-			}
-
-			go func() {
-				time.Sleep(10 * time.Millisecond)
-
-				ps.Terminate()
-			}()
-
-			err = ps.ListenSync()
-
-			if !reflect.DeepEqual(err, onCheckForPendingMessageError) {
-				t.Error("PubSub.ListenSync() did not return error from CheckForPendingMessage from driver")
-			}
-		})
-
 		t.Run("should invoke ReceivePendingMessage from driver", func(t *testing.T) {
 
 			t.Run("should invoke ReceivePendingMessage from driver when CheckForPendingMessage returned true", func(t *testing.T) {
@@ -931,14 +862,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 					return nil, nil
 				}
 
-				var onCheckForPendingMessage = func() (bool, error) {
-					return true, nil
-				}
-
 				ps, err := NewPubSubFromDriver(observableTestDriver{
-					executionFlag:                      RequiresBlockingExecution,
-					checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-					receivePendingMessageCallbackFunc:  onReceivePendingMessage,
+					executionFlag:                     RequiresBlockingExecution,
+					receivePendingMessageCallbackFunc: onReceivePendingMessage,
 				})
 
 				if err != nil {
@@ -959,40 +885,6 @@ func Test_PubSub_ListenSync(t *testing.T) {
 
 			})
 
-			t.Run("should not invoke ReceivePendingMessage from driver when CheckForPendingMessage returned false", func(t *testing.T) {
-
-				var onReceivePendingMessageInvoked = false
-				var onReceivePendingMessage = func() (interface{}, error) {
-					onReceivePendingMessageInvoked = true
-					return nil, nil
-				}
-
-				var onCheckForPendingMessage = func() (bool, error) {
-					return false, nil
-				}
-
-				ps, err := NewPubSubFromDriver(observableTestDriver{
-					executionFlag:                      RequiresBlockingExecution,
-					checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-					receivePendingMessageCallbackFunc:  onReceivePendingMessage,
-				})
-
-				if err != nil {
-					t.Error(err)
-				}
-
-				go func() {
-					time.Sleep(10 * time.Millisecond)
-
-					ps.Terminate()
-				}()
-
-				ps.ListenSync()
-
-				if onReceivePendingMessageInvoked == true {
-					t.Error("PubSub.ListenSync() did invoke ReceivePendingMessage from driver when CheckForPendingMessage returned false")
-				}
-			})
 		})
 
 		t.Run("should return error from ReceivePendingMessage from driver", func(t *testing.T) {
@@ -1002,14 +894,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil, onReceivePendingMessageError
 			}
 
-			var onCheckForPendingMessage = func() (bool, error) {
-				return true, nil
-			}
-
 			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                      RequiresBlockingExecution,
-				checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-				receivePendingMessageCallbackFunc:  onReceivePendingMessage,
+				executionFlag:                     RequiresBlockingExecution,
+				receivePendingMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {
@@ -1045,17 +932,13 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil
 			}
 
-			var onCheckForPendingMessage = func() (bool, error) {
-				return true, nil
-			}
 			var onRecievePendingMessage = func() (interface{}, error) {
 				return message, nil
 			}
 
 			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                      RequiresBlockingExecution,
-				checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-				receivePendingMessageCallbackFunc:  onRecievePendingMessage,
+				executionFlag:                     RequiresBlockingExecution,
+				receivePendingMessageCallbackFunc: onRecievePendingMessage,
 			})
 
 			if err != nil {
@@ -1086,18 +969,13 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return onNotifySubscribersError
 			}
 
-			var onCheckForPendingMessage = func() (bool, error) {
-				return true, nil
-			}
-
 			var onReceivePendingMessage = func() (interface{}, error) {
 				return "test message", nil
 			}
 
 			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                      RequiresBlockingExecution,
-				checkForPendingMessageCallbackFunc: onCheckForPendingMessage,
-				receivePendingMessageCallbackFunc:  onReceivePendingMessage,
+				executionFlag:                     RequiresBlockingExecution,
+				receivePendingMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {

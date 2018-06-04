@@ -46,14 +46,8 @@ func (d Driver) OpenStream() error {
 	return nil
 }
 
-// CheckForPendingMessage can be called to test if a new message
-// is pending
-func (d Driver) CheckForPendingMessage() (bool, error) {
-	return true, nil
-}
-
-// ReceivePendingMessage can be called to recieve a message
-func (d Driver) ReceivePendingMessage() (interface{}, error) {
+// ReceiveMessage can be called to recieve a message
+func (d Driver) ReceiveMessage() (interface{}, error) {
 	return <-d.channel, nil
 }
 

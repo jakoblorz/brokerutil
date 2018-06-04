@@ -188,22 +188,14 @@ func (a PubSub) ListenSync() error {
 			}
 
 		default:
-
-			avail, err := d.CheckForPendingMessage()
+			msg, err := d.ReceiveMessage()
 			if err != nil {
 				return err
 			}
 
-			if avail {
-				msg, err := d.ReceivePendingMessage()
-				if err != nil {
-					return err
-				}
-
-				err = a.scheduler.NotifySubscribers(msg)
-				if err != nil {
-					return err
-				}
+			err = a.scheduler.NotifySubscribers(msg)
+			if err != nil {
+				return err
 			}
 		}
 	}
