@@ -91,37 +91,6 @@ func (d observableTestDriver) GetMessageReaderChannel() (<-chan interface{}, err
 	return nil, nil
 }
 
-type pubSubScaffoldImplementation struct {
-	executionFlag Flag
-}
-
-func (i pubSubScaffoldImplementation) GetDriverFlags() []Flag {
-	return []Flag{i.executionFlag}
-}
-
-func (i pubSubScaffoldImplementation) CloseStream() error {
-	return nil
-}
-
-func (i pubSubScaffoldImplementation) OpenStream() error {
-	return nil
-}
-
-type missingExecutionFlagPubSub struct {
-}
-
-func (missingExecutionFlagPubSub) GetDriverFlags() []Flag {
-	return []Flag{}
-}
-
-func (missingExecutionFlagPubSub) CloseStream() error {
-	return nil
-}
-
-func (missingExecutionFlagPubSub) OpenStream() error {
-	return nil
-}
-
 type observableTestScheduler struct {
 	notifySchedulerCallbackFunc func(interface{}) error
 	subscribeAsyncCallbackFunc  func(SubscriberFunc) (chan error, SubscriberIdentifier)
@@ -171,6 +140,37 @@ func (o observableTestScheduler) UnsubscribeAll() {
 	}
 }
 
+type missingImplementationPubSubDriver struct {
+	executionFlag Flag
+}
+
+func (i missingImplementationPubSubDriver) GetDriverFlags() []Flag {
+	return []Flag{i.executionFlag}
+}
+
+func (i missingImplementationPubSubDriver) CloseStream() error {
+	return nil
+}
+
+func (i missingImplementationPubSubDriver) OpenStream() error {
+	return nil
+}
+
+type missingExecutionFlagPubSubDriver struct {
+}
+
+func (missingExecutionFlagPubSubDriver) GetDriverFlags() []Flag {
+	return []Flag{}
+}
+
+func (missingExecutionFlagPubSubDriver) CloseStream() error {
+	return nil
+}
+
+func (missingExecutionFlagPubSubDriver) OpenStream() error {
+	return nil
+}
+
 func TestNewPubSubFromDriver(t *testing.T) {
 
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
@@ -207,7 +207,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 
 	t.Run("should return error when calling with incompatible concurrent driver", func(t *testing.T) {
 
-		d := pubSubScaffoldImplementation{
+		d := missingImplementationPubSubDriver{
 			executionFlag: RequiresConcurrentExecution,
 		}
 
@@ -219,7 +219,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 
 	t.Run("should return error when calling with incompatible blocking driver", func(t *testing.T) {
 
-		d := pubSubScaffoldImplementation{
+		d := missingImplementationPubSubDriver{
 			executionFlag: RequiresBlockingExecution,
 		}
 
@@ -231,7 +231,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 
 	t.Run("should return error when driver does not return execution flag", func(t *testing.T) {
 
-		d := missingExecutionFlagPubSub{}
+		d := missingExecutionFlagPubSubDriver{}
 
 		_, err := NewPubSubFromDriver(d)
 		if err == nil {
@@ -445,6 +445,81 @@ func Test_PubSub_ListenSync(t *testing.T) {
 		if onCloseStreamInvoked == false {
 			t.Error("PubSub.ListenSync() did not invoke CloseStream from driver")
 		}
+	})
+
+	t.Run("should invoke UnsubscribeAll from scheduler", func(t *testing.T) {
+
+		var onUnsubscribeAllInvoked = false
+		var onUnsubscribeAll = func() {
+			onUnsubscribeAllInvoked = true
+		}
+
+		ps, err := NewPubSubFromDriver(observableTestDriver{
+			executionFlag: RequiresBlockingExecution,
+		})
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		ps.scheduler = observableTestScheduler{
+			unsubscribeAllCallbackFunc: onUnsubscribeAll,
+		}
+
+		go func() {
+			time.Sleep(10 * time.Millisecond)
+			ps.Terminate()
+		}()
+
+		ps.ListenSync()
+
+		if onUnsubscribeAllInvoked == false {
+			t.Error("PubSub.ListenSync() did not invoke UnsubscribeAll from scheduler")
+		}
+	})
+
+	t.Run("concurrent behaviour test", func(t *testing.T) {
+
+		t.Run("should return error when driver cannot be casted to concurrent driver interface", func(t *testing.T) {
+
+			ps := PubSub{
+				backlog:             make(chan interface{}),
+				terminate:           make(chan int),
+				supportsConcurrency: true,
+				driver: missingImplementationPubSubDriver{
+					executionFlag: RequiresConcurrentExecution,
+				},
+				scheduler: newScheduler(),
+			}
+
+			err := ps.ListenSync()
+
+			if err == nil {
+				t.Error("PubSub.ListenSync() did not return error when trying to cast concurrent driver interface")
+			}
+		})
+	})
+
+	t.Run("blocking behaviour test", func(t *testing.T) {
+
+		t.Run("should return error when driver cannot be casted to blocking driver interface", func(t *testing.T) {
+
+			ps := PubSub{
+				backlog:             make(chan interface{}),
+				terminate:           make(chan int),
+				supportsConcurrency: false,
+				driver: missingImplementationPubSubDriver{
+					executionFlag: RequiresBlockingExecution,
+				},
+				scheduler: newScheduler(),
+			}
+
+			err := ps.ListenSync()
+
+			if err == nil {
+				t.Error("PubSub.ListenSync() did not return error when trying to cast blocking driver interface")
+			}
+		})
 	})
 }
 
