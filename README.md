@@ -27,7 +27,7 @@ package main
 
 import (
     "github.com/jakoblorz/brokerutil"
-    "github.com/jakoblorz/brokerutil/driver/redis"
+    "github.com/jakoblorz/brokerutil/redis"
     r "github.com/go-redis/redis"
 )
 
