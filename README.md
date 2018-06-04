@@ -43,11 +43,8 @@ func main() {
     flag.Parse()
 
     // create redis driver to support pub-sub
-    driver, err := redis.NewDriver(&redis.DriverOptions{
-        channel: *channel,
-        driver:  &r.Options{
-            Addr:     *raddr,
-        },
+    driver, err := redis.NewRedisPubSub([]string{channel}, &r.Options{
+        Addr: *raddr,
     })
 
     if err != nil {
