@@ -2,13 +2,11 @@ package brokerutil
 
 import (
 	"testing"
-
-	"github.com/jakoblorz/brokerutil/driver"
 )
 
 type observableTestDriver struct {
-	executionFlag                       driver.Flag
-	getDriverTypeCallbackFunc           func() []driver.Flag
+	executionFlag                       Flag
+	getDriverTypeCallbackFunc           func() []Flag
 	getMessageWriterChannelCallbackFunc func() (chan<- interface{}, error)
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
@@ -18,13 +16,13 @@ type observableTestDriver struct {
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d observableTestDriver) GetDriverFlags() []driver.Flag {
+func (d observableTestDriver) GetDriverFlags() []Flag {
 
 	if d.getDriverTypeCallbackFunc != nil {
 		return d.getDriverTypeCallbackFunc()
 	}
 
-	return []driver.Flag{d.executionFlag}
+	return []Flag{d.executionFlag}
 }
 
 func (d observableTestDriver) CloseStream() error {
@@ -144,7 +142,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: driver.RequiresConcurrentExecution,
+			executionFlag: RequiresConcurrentExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(d)
@@ -160,7 +158,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to false when supporting driver is not present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: driver.RequiresBlockingExecution,
+			executionFlag: RequiresBlockingExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(d)

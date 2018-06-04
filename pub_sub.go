@@ -2,15 +2,13 @@ package brokerutil
 
 import (
 	"errors"
-
-	"github.com/jakoblorz/brokerutil/driver"
 )
 
 // PubSub is the common "gateway" to reach to interact with the message broker such
 // as Publish / Subscribe. Independently from the implementation of the driver, it
 // guarantees that the exposed functions will work as expected.
 type PubSub struct {
-	driver              driver.PubSubDriverScaffold
+	driver              PubSubDriverScaffold
 	scheduler           scheduler
 	supportsConcurrency bool
 
@@ -22,20 +20,20 @@ type PubSub struct {
 //
 // Depending on the implementation of the driver (single- or multithreaded)
 // a different PubSub implementation will be chosen.
-func NewPubSubFromDriver(d driver.PubSubDriverScaffold) (*PubSub, error) {
+func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 
 	var supportsConcurrency bool
 
-	if containsFlag(d.GetDriverFlags(), driver.RequiresConcurrentExecution) {
-		_, ok := d.(driver.ConcurrentPubSubDriverScaffold)
+	if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
+		_, ok := d.(ConcurrentPubSubDriverScaffold)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to concurrency supporting driver")
 		}
 
 		supportsConcurrency = true
-	} else if containsFlag(d.GetDriverFlags(), driver.RequiresBlockingExecution) {
-		_, ok := d.(driver.BlockingPubSubDriverScaffold)
+	} else if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
+		_, ok := d.(BlockingPubSubDriverScaffold)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to plain driver")
@@ -127,7 +125,7 @@ func (a PubSub) ListenSync() error {
 	//
 	if a.supportsConcurrency {
 
-		d, ok := a.driver.(driver.ConcurrentPubSubDriverScaffold)
+		d, ok := a.driver.(ConcurrentPubSubDriverScaffold)
 
 		if !ok {
 			return errors.New("driver does not support concurrency, could not cast to correct interface")
@@ -173,7 +171,7 @@ func (a PubSub) ListenSync() error {
 	// such as recieving and writing from different goroutines
 	//
 
-	d, ok := a.driver.(driver.BlockingPubSubDriverScaffold)
+	d, ok := a.driver.(BlockingPubSubDriverScaffold)
 
 	if !ok {
 		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")

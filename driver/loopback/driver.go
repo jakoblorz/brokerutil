@@ -1,19 +1,19 @@
 package loopback
 
 import (
-	"github.com/jakoblorz/brokerutil/driver"
+	"github.com/jakoblorz/brokerutil"
 )
 
 // Driver is the struct to implement both the
 // SingleThreadPubSubDriverScaffold interface and the
 // MultiThreadPubSubDriverScaffold interface
 type Driver struct {
-	executionFlag driver.Flag
+	executionFlag brokerutil.Flag
 	channel       chan interface{}
 }
 
 // NewDriver returns a new loopback driver
-func NewDriver(executionFlag driver.Flag) (*Driver, error) {
+func NewDriver(executionFlag brokerutil.Flag) (*Driver, error) {
 	return &Driver{
 		executionFlag: executionFlag,
 		channel:       make(chan interface{}),
@@ -21,19 +21,19 @@ func NewDriver(executionFlag driver.Flag) (*Driver, error) {
 }
 
 // NewBlockingDriver returns a new loopback driver as single thread driver
-func NewBlockingDriver() (driver.BlockingPubSubDriverScaffold, error) {
-	return NewDriver(driver.RequiresBlockingExecution)
+func NewBlockingDriver() (brokerutil.BlockingPubSubDriverScaffold, error) {
+	return NewDriver(brokerutil.RequiresBlockingExecution)
 }
 
 // NewConcurrentDriver returns a new loopback driver as multi thread driver
-func NewConcurrentDriver() (driver.ConcurrentPubSubDriverScaffold, error) {
-	return NewDriver(driver.RequiresConcurrentExecution)
+func NewConcurrentDriver() (brokerutil.ConcurrentPubSubDriverScaffold, error) {
+	return NewDriver(brokerutil.RequiresConcurrentExecution)
 }
 
 // GetDriverFlags returns the driver type to indicate the
 // ability to be used in concurrent environments
-func (d Driver) GetDriverFlags() []driver.Flag {
-	return []driver.Flag{d.executionFlag}
+func (d Driver) GetDriverFlags() []brokerutil.Flag {
+	return []brokerutil.Flag{d.executionFlag}
 }
 
 // CloseStream can be called to close the stream

@@ -2,7 +2,7 @@ package redis
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/jakoblorz/brokerutil/driver"
+	"github.com/jakoblorz/brokerutil"
 )
 
 type Driver struct {
@@ -27,8 +27,8 @@ func NewDriver(opts *DriverOptions) (*Driver, error) {
 	}, nil
 }
 
-func (d Driver) GetDriverFlags() []driver.Flag {
-	return []driver.Flag{driver.RequiresBlockingExecution}
+func (d Driver) GetDriverFlags() []brokerutil.Flag {
+	return []brokerutil.Flag{brokerutil.RequiresBlockingExecution}
 }
 
 func (d Driver) CloseStream() error {

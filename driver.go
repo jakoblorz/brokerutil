@@ -1,4 +1,4 @@
-package driver
+package brokerutil
 
 // Flag should reflect the ability of a driver to be used
 // in concurrent environments
