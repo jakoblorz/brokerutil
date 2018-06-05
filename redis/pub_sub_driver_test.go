@@ -9,7 +9,7 @@ import (
 	"github.com/jakoblorz/brokerutil"
 )
 
-func TestNewRedisPubSub(t *testing.T) {
+func TestNewRedisPubSubDriver(t *testing.T) {
 	type args struct {
 		channels []string
 		opts     *redis.Options
@@ -38,7 +38,7 @@ func TestNewRedisPubSub(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewRedisPubSub(tt.args.channels, tt.args.opts)
+			_, err := NewRedisPubSubDriver(tt.args.channels, tt.args.opts)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewRedisPubSub() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -47,7 +47,7 @@ func TestNewRedisPubSub(t *testing.T) {
 	}
 }
 
-func TestPubSub_GetDriverFlags(t *testing.T) {
+func TestPubSubDriver_GetDriverFlags(t *testing.T) {
 	tests := []struct {
 		name string
 		want []brokerutil.Flag
@@ -59,17 +59,17 @@ func TestPubSub_GetDriverFlags(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := PubSub{}
+			p := PubSubDriver{}
 			if got := p.GetDriverFlags(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("PubSub.GetDriverFlags() = %v, want %v", got, tt.want)
+				t.Errorf("PubSubDriver.GetDriverFlags() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestPubSub_GetMessageWriterChannel(t *testing.T) {
+func TestPubSubDriver_GetMessageWriterChannel(t *testing.T) {
 
-	ps, err := NewRedisPubSub([]string{}, &redis.Options{
+	ps, err := NewRedisPubSubDriver([]string{}, &redis.Options{
 		Addr: ":6379",
 	})
 
@@ -82,21 +82,21 @@ func TestPubSub_GetMessageWriterChannel(t *testing.T) {
 	t.Run("should not return any errors", func(t *testing.T) {
 
 		if _, err := ps.GetMessageWriterChannel(); err != nil {
-			t.Errorf("PubSub.GetMessageWriterChannel() did return an error: err = %v", err)
+			t.Errorf("PubSubDriver.GetMessageWriterChannel() did return an error: err = %v", err)
 		}
 	})
 
 	t.Run("should return interface writer channel", func(t *testing.T) {
 
 		if c, _ := ps.GetMessageWriterChannel(); c == nil {
-			t.Error("PubSub.GetMessageWriterChannel() did return nil as interface writer channel")
+			t.Error("PubSubDriver.GetMessageWriterChannel() did return nil as interface writer channel")
 		}
 	})
 }
 
-func TestPubSub_GetMessageReaderChannel(t *testing.T) {
+func TestPubSubDriver_GetMessageReaderChannel(t *testing.T) {
 
-	ps, err := NewRedisPubSub([]string{}, &redis.Options{
+	ps, err := NewRedisPubSubDriver([]string{}, &redis.Options{
 		Addr: ":6379",
 	})
 
@@ -109,21 +109,21 @@ func TestPubSub_GetMessageReaderChannel(t *testing.T) {
 	t.Run("should not return any errors", func(t *testing.T) {
 
 		if _, err := ps.GetMessageReaderChannel(); err != nil {
-			t.Errorf("PubSub.GetMessageReaderChannel() did return an error: err = %v", err)
+			t.Errorf("PubSubDriver.GetMessageReaderChannel() did return an error: err = %v", err)
 		}
 	})
 
 	t.Run("should return interface reader channel", func(t *testing.T) {
 
 		if c, _ := ps.GetMessageReaderChannel(); c == nil {
-			t.Error("PubSub.GetMessageReaderChannel() did return nil as interface reader channel")
+			t.Error("PubSubDriver.GetMessageReaderChannel() did return nil as interface reader channel")
 		}
 	})
 }
 
-func TestPubSub_OpenStream(t *testing.T) {
+func TestPubSubDriver_OpenStream(t *testing.T) {
 
-	ps, err := NewRedisPubSub([]string{}, &redis.Options{
+	ps, err := NewRedisPubSubDriver([]string{}, &redis.Options{
 		Addr: ":6379",
 	})
 
@@ -136,7 +136,7 @@ func TestPubSub_OpenStream(t *testing.T) {
 	t.Run("should not return any errors", func(t *testing.T) {
 
 		if err := ps.OpenStream(); err != nil {
-			t.Errorf("PubSub.OpenStream() returned an error: err = %v", err)
+			t.Errorf("PubSubDriver.OpenStream() returned an error: err = %v", err)
 		}
 	})
 
@@ -159,7 +159,7 @@ func TestPubSub_OpenStream(t *testing.T) {
 		rxMessage := <-receiveCh
 
 		if !reflect.DeepEqual(rxMessage, txMessage) {
-			t.Errorf("PubSub.OpenStream() did not relay correct recieved message: expected = %v recieved = %v", txMessage, rxMessage)
+			t.Errorf("PubSubDriver.OpenStream() did not relay correct recieved message: expected = %v recieved = %v", txMessage, rxMessage)
 		}
 	})
 
@@ -175,15 +175,15 @@ func TestPubSub_OpenStream(t *testing.T) {
 		rxMessage := <-receiveCh
 
 		if !reflect.DeepEqual(rxMessage, txMessage) {
-			t.Errorf("PubSub.OpenStream() did not send message from tx channel: expected = %v received = %v", txMessage, rxMessage)
+			t.Errorf("PubSubDriver.OpenStream() did not send message from tx channel: expected = %v received = %v", txMessage, rxMessage)
 		}
 
 	})
 }
 
-func TestPubSub_CloseStream(t *testing.T) {
+func TestPubSubDriver_CloseStream(t *testing.T) {
 
-	ps, err := NewRedisPubSub([]string{}, &redis.Options{
+	ps, err := NewRedisPubSubDriver([]string{}, &redis.Options{
 		Addr: ":6379",
 	})
 
@@ -201,7 +201,7 @@ func TestPubSub_CloseStream(t *testing.T) {
 	t.Run("should not return any errors", func(t *testing.T) {
 
 		if err := ps.CloseStream(); err != nil {
-			t.Errorf("PubSub.CloseStream() returned an error: err = %v", err)
+			t.Errorf("PubSubDriver.CloseStream() returned an error: err = %v", err)
 		}
 	})
 }

@@ -5,9 +5,9 @@ import (
 	"github.com/jakoblorz/brokerutil"
 )
 
-// PubSub implements the brokerutil concurrent driver interface
+// PubSubDriver implements the brokerutil concurrent driver interface
 // to allow pub sub functionality over redis
-type PubSub struct {
+type PubSubDriver struct {
 	client       *redis.Client
 	channelNames []string
 	transmitCh   chan interface{}
@@ -15,8 +15,8 @@ type PubSub struct {
 	signal       chan int
 }
 
-// NewRedisPubSub creates a new redis pub sub driver
-func NewRedisPubSub(channels []string, opts *redis.Options) (*PubSub, error) {
+// NewRedisPubSubDriver creates a new redis pub sub driver
+func NewRedisPubSubDriver(channels []string, opts *redis.Options) (*PubSubDriver, error) {
 
 	var channelNames []string
 	if len(channels) == 0 {
@@ -32,7 +32,7 @@ func NewRedisPubSub(channels []string, opts *redis.Options) (*PubSub, error) {
 		return nil, err
 	}
 
-	return &PubSub{
+	return &PubSubDriver{
 		client:       client,
 		channelNames: channelNames,
 		signal:       make(chan int), // sync signal chan
@@ -42,12 +42,12 @@ func NewRedisPubSub(channels []string, opts *redis.Options) (*PubSub, error) {
 }
 
 // GetDriverFlags returns flags which indicate the capabilities
-func (p PubSub) GetDriverFlags() []brokerutil.Flag {
+func (p PubSubDriver) GetDriverFlags() []brokerutil.Flag {
 	return []brokerutil.Flag{brokerutil.RequiresConcurrentExecution}
 }
 
 // OpenStream initializes the communication channels protocol + network
-func (p PubSub) OpenStream() error {
+func (p PubSubDriver) OpenStream() error {
 
 	channel := p.client.Subscribe(p.channelNames...)
 
@@ -100,7 +100,7 @@ func (p PubSub) OpenStream() error {
 }
 
 // CloseStream cleans the communication routines up
-func (p PubSub) CloseStream() error {
+func (p PubSubDriver) CloseStream() error {
 	p.signal <- 1
 	p.signal <- 1
 	p.signal <- 1
@@ -110,12 +110,12 @@ func (p PubSub) CloseStream() error {
 
 // GetMessageWriterChannel returns the channel to write to
 // if a message needs to be sent / published
-func (p PubSub) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (p PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return p.transmitCh, nil
 }
 
 // GetMessageReaderChannel returns the channel to read from
 // if a message was received
-func (p PubSub) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (p PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return p.receiveCh, nil
 }
