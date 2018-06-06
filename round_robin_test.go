@@ -110,20 +110,22 @@ func Test_roundRobinScheduler_SubscribeSync(t *testing.T) {
 	var subscriberCountBefore = len(subscriberCtrl.subscribers)
 	var subscriberCountAfter int
 
-	go func() {
-
-		// wait some time to then notify of a message which lets
-		// the callback function to fail
-		time.Sleep(10 * time.Millisecond)
-
-		subscriberCountAfter = len(subscriberCtrl.subscribers)
-
-		subscriberCtrl.NotifySubscribers(interface{}("test message"))
-	}()
-
-	subscriberCtrl.SubscribeSync(func(msg interface{}) error {
+	go subscriberCtrl.SubscribeSync(func(msg interface{}) error {
 		return errors.New("test error")
 	})
+
+	defer subscriberCtrl.UnsubscribeAll()
+
+	// wait for go routine to register subscriber
+	time.Sleep(10 * time.Millisecond)
+
+	subscriberCtrl.m.Lock()
+
+	subscriberCountAfter = len(subscriberCtrl.subscribers)
+
+	subscriberCtrl.m.Unlock()
+
+	subscriberCtrl.NotifySubscribers(interface{}("test message"))
 
 	t.Run("should have increased subscriber count", func(t *testing.T) {
 		if subscriberCountAfter <= subscriberCountBefore {
