@@ -7,7 +7,7 @@ import (
 	"reflect"
 )
 
-type metadataDriverWrapper struct {
+type metaDriverWrapper struct {
 	executionFlag Flag
 	driver        PubSubDriverScaffold
 }
@@ -17,12 +17,22 @@ type syntheticDriverOptions struct {
 	WrapMessageWithTarget bool
 }
 
+type syntheticMessageWithSource struct {
+	source  PubSubDriverScaffold
+	message interface{}
+}
+
+type syntheticMessageWithTarget struct {
+	target  PubSubDriverScaffold
+	message interface{}
+}
+
 // syntheticDriver is a ConcurrentPubSubDriverScaffold compliant
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
 type syntheticDriver struct {
 	executionFlag Flag
-	drivers       []metadataDriverWrapper
+	drivers       []metaDriverWrapper
 	transmitChan  chan interface{}
 	receiveChan   chan interface{}
 	signalChan    chan int
@@ -40,17 +50,17 @@ func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, erro
 
 	// set executionFlag, check all drivers on compliance
 	var executionFlag Flag = -1
-	var metaDriverSlice = make([]metadataDriverWrapper, 0)
+	var metaDriverSlice = make([]metaDriverWrapper, 0)
 	for _, d := range drivers {
 
 		if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
-			metaDriverSlice = append(metaDriverSlice, metadataDriverWrapper{
+			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresBlockingExecution,
 				driver:        d,
 			})
 
 		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
-			metaDriverSlice = append(metaDriverSlice, metadataDriverWrapper{
+			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresConcurrentExecution,
 				driver:        d,
 			})
