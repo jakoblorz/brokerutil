@@ -31,11 +31,10 @@ type syntheticMessageWithTarget struct {
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
 type syntheticDriver struct {
-	executionFlag Flag
-	drivers       []metaDriverWrapper
-	transmitChan  chan interface{}
-	receiveChan   chan interface{}
-	signalChan    chan int
+	drivers      []metaDriverWrapper
+	transmitChan chan interface{}
+	receiveChan  chan interface{}
+	signalChan   chan int
 }
 
 // newSyntheticDriver creates a new driver merger which merges multiple drivers
@@ -49,7 +48,6 @@ func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, erro
 	}
 
 	// set executionFlag, check all drivers on compliance
-	var executionFlag Flag = -1
 	var metaDriverSlice = make([]metaDriverWrapper, 0)
 	for _, d := range drivers {
 
@@ -70,11 +68,10 @@ func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, erro
 	}
 
 	return &syntheticDriver{
-		drivers:       metaDriverSlice,
-		executionFlag: executionFlag,
-		transmitChan:  make(chan interface{}, 1),
-		receiveChan:   make(chan interface{}, 1),
-		signalChan:    make(chan int),
+		drivers:      metaDriverSlice,
+		transmitChan: make(chan interface{}, 1),
+		receiveChan:  make(chan interface{}, 1),
+		signalChan:   make(chan int),
 	}, nil
 
 }
@@ -151,7 +148,7 @@ func (p syntheticDriver) OpenStream() error {
 
 			}()
 
-		} else if p.executionFlag == RequiresConcurrentExecution {
+		} else if d.executionFlag == RequiresConcurrentExecution {
 
 			driver, ok := d.driver.(ConcurrentPubSubDriverScaffold)
 			if !ok {
