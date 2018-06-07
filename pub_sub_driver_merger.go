@@ -7,15 +7,17 @@ import (
 	"reflect"
 )
 
-// TODO: remove executionFlag and check executionFlag on
-// driver level
+type pubSubDriverMergerDriverMeta struct {
+	executionFlag Flag
+	driver        PubSubDriverScaffold
+}
 
 // PubSubDriverMerger is a ConcurrentPubSubDriverScaffold compliant
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
 type PubSubDriverMerger struct {
 	executionFlag Flag
-	drivers       []PubSubDriverScaffold
+	drivers       []pubSubDriverMergerDriverMeta
 	transmitChan  chan interface{}
 	receiveChan   chan interface{}
 	signalChan    chan int
@@ -33,28 +35,27 @@ func NewPubSubDriverMerger(drivers ...PubSubDriverScaffold) (*PubSubDriverMerger
 
 	// set executionFlag, check all drivers on compliance
 	var executionFlag Flag = -1
+	var metaDriverSlice = make([]pubSubDriverMergerDriverMeta, 0)
 	for _, d := range drivers {
 
-		if executionFlag == -1 {
+		if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
+			metaDriverSlice = append(metaDriverSlice, pubSubDriverMergerDriverMeta{
+				executionFlag: RequiresBlockingExecution,
+				driver:        d,
+			})
 
-			if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
-				executionFlag = RequiresBlockingExecution
-			} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
-				executionFlag = RequiresConcurrentExecution
-			} else {
-				return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
-			}
-
+		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
+			metaDriverSlice = append(metaDriverSlice, pubSubDriverMergerDriverMeta{
+				executionFlag: RequiresConcurrentExecution,
+				driver:        d,
+			})
 		} else {
-
-			if !containsFlag(d.GetDriverFlags(), executionFlag) {
-				return nil, fmt.Errorf("cannot use driver %v: mixing different driver types is not possible", d)
-			}
+			return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
 		}
 	}
 
 	return &PubSubDriverMerger{
-		drivers:       drivers,
+		drivers:       metaDriverSlice,
 		executionFlag: executionFlag,
 		transmitChan:  make(chan interface{}, 1),
 		receiveChan:   make(chan interface{}, 1),
@@ -72,17 +73,17 @@ func (p PubSubDriverMerger) GetDriverFlags() []Flag {
 // onto the mergers own streams
 func (p PubSubDriverMerger) OpenStream() error {
 
-	pubDriverPtr := &p.drivers[0]
+	pubDriverPtr := &p.drivers[0].driver
 
 	for _, d := range p.drivers {
 
-		if err := d.OpenStream(); err != nil {
+		if err := d.driver.OpenStream(); err != nil {
 			return err
 		}
 
-		if p.executionFlag == RequiresBlockingExecution {
+		if d.executionFlag == RequiresBlockingExecution {
 
-			driver, ok := d.(BlockingPubSubDriverScaffold)
+			driver, ok := d.driver.(BlockingPubSubDriverScaffold)
 			if !ok {
 				return fmt.Errorf("cannot parse driver %v to BlockingPubSubDriverScaffold", d)
 			}
@@ -91,8 +92,8 @@ func (p PubSubDriverMerger) OpenStream() error {
 
 				defer driver.CloseStream()
 
-				// check if it is the first driver which should publish
-				if reflect.DeepEqual(pubDriverPtr, &d) {
+				// check if it is the first driver which will publish
+				if reflect.DeepEqual(pubDriverPtr, &d.driver) {
 
 					for {
 						select {
@@ -137,12 +138,12 @@ func (p PubSubDriverMerger) OpenStream() error {
 
 		} else if p.executionFlag == RequiresConcurrentExecution {
 
-			driver, ok := d.(ConcurrentPubSubDriverScaffold)
+			driver, ok := d.driver.(ConcurrentPubSubDriverScaffold)
 			if !ok {
 				return fmt.Errorf("cannot parse driver %v to ConcurrentPubSubDriverScaffold", d)
 			}
 
-			if reflect.DeepEqual(pubDriverPtr, &d) {
+			if reflect.DeepEqual(pubDriverPtr, &d.driver) {
 
 				go func() {
 
@@ -187,18 +188,14 @@ func (p PubSubDriverMerger) OpenStream() error {
 // go routines
 func (p PubSubDriverMerger) CloseStream() error {
 
-	var signalCount int
+	var pubDriverPtr = &p.drivers[0].driver
+	for _, d := range p.drivers {
 
-	if p.executionFlag == RequiresBlockingExecution {
-		signalCount = len(p.drivers)
-	}
-
-	if p.executionFlag == RequiresConcurrentExecution {
-		signalCount = 1 + len(p.drivers)
-	}
-
-	for i := 0; i < signalCount; i++ {
 		p.signalChan <- 1
+
+		if d.executionFlag == RequiresConcurrentExecution && reflect.DeepEqual(pubDriverPtr, &d.driver) {
+			p.signalChan <- 1
+		}
 	}
 
 	return nil
