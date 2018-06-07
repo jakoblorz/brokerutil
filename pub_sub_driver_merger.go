@@ -12,6 +12,11 @@ type pubSubDriverMergerDriverMeta struct {
 	driver        PubSubDriverScaffold
 }
 
+type PubSubDriverMergerOptions struct {
+	WrapMessageWithSource bool
+	WrapMessageWithTarget bool
+}
+
 // PubSubDriverMerger is a ConcurrentPubSubDriverScaffold compliant
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
