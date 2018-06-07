@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"log"
+	"sync"
 
 	"github.com/Shopify/sarama"
 	"github.com/jakoblorz/brokerutil"
@@ -12,22 +13,42 @@ import (
 type PubSubDriver struct {
 	signal       chan int
 	config       *sarama.Config
-	brokers      []string
+	client       *sarama.Client
 	topic        string
 	transmitChan chan interface{}
 	receiveChan  chan interface{}
+
+	m *sync.Mutex
 }
 
 // NewKafkaPubSubDriver creates a new kafka pub sub driver
 func NewKafkaPubSubDriver(topic string, brokers []string, config *sarama.Config) (*PubSubDriver, error) {
+
+	client, err := sarama.NewClient(brokers, config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PubSubDriver{
 		signal:       make(chan int),
 		config:       config,
-		brokers:      brokers,
+		client:       &client,
 		topic:        topic,
 		transmitChan: make(chan interface{}, 1),
 		receiveChan:  make(chan interface{}, 1),
+		m:            &sync.Mutex{},
 	}, nil
+}
+
+func (p PubSubDriver) getSyncedClient() sarama.Client {
+
+	p.m.Lock()
+
+	client := *p.client
+
+	p.m.Unlock()
+
+	return client
 }
 
 // GetDriverFlags returns flags which indicate the capabilites
@@ -42,7 +63,9 @@ func (p PubSubDriver) OpenStream() error {
 	// tx routine
 	go func() {
 
-		producer, err := sarama.NewAsyncProducer(p.brokers, p.config)
+		client := p.getSyncedClient()
+
+		producer, err := sarama.NewAsyncProducerFromClient(client)
 		if err != nil {
 			log.Fatalf("PubSubDriver.OpenStream() AsyncProducer error = %v", err)
 			return
@@ -77,7 +100,9 @@ func (p PubSubDriver) OpenStream() error {
 	// rx routine
 	go func() {
 
-		consumer, err := sarama.NewConsumer(p.brokers, p.config)
+		client := p.getSyncedClient()
+
+		consumer, err := sarama.NewConsumerFromClient(client)
 		if err != nil {
 			log.Fatalf("PubSubDriver.OpenStream() Consumer error = %v", err)
 			return
