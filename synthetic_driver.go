@@ -1,7 +1,6 @@
 package brokerutil
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -45,10 +44,6 @@ type syntheticDriver struct {
 // The first driver is used to publish messages
 func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriverScaffold) (*syntheticDriver, error) {
 
-	if len(drivers) == 0 {
-		return nil, errors.New("cannot create driver merger with no drivers")
-	}
-
 	// set executionFlag, check all drivers on compliance
 	var metaDriverSlice = make([]metaDriverWrapper, 0)
 	for _, d := range drivers {
@@ -57,12 +52,14 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresBlockingExecution,
 				driver:        d,
+				transmitChan:  make(chan interface{}),
 			})
 
 		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresConcurrentExecution,
 				driver:        d,
+				transmitChan:  make(chan interface{}),
 			})
 		} else {
 			return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
