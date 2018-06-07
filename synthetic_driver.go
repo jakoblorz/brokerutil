@@ -7,32 +7,32 @@ import (
 	"reflect"
 )
 
-type pubSubDriverMergerDriverMeta struct {
+type metadataDriverWrapper struct {
 	executionFlag Flag
 	driver        PubSubDriverScaffold
 }
 
-type PubSubDriverMergerOptions struct {
+type syntheticDriverOptions struct {
 	WrapMessageWithSource bool
 	WrapMessageWithTarget bool
 }
 
-// PubSubDriverMerger is a ConcurrentPubSubDriverScaffold compliant
+// syntheticDriver is a ConcurrentPubSubDriverScaffold compliant
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
-type PubSubDriverMerger struct {
+type syntheticDriver struct {
 	executionFlag Flag
-	drivers       []pubSubDriverMergerDriverMeta
+	drivers       []metadataDriverWrapper
 	transmitChan  chan interface{}
 	receiveChan   chan interface{}
 	signalChan    chan int
 }
 
-// NewPubSubDriverMerger creates a new driver merger which merges multiple drivers
+// newSyntheticDriver creates a new driver merger which merges multiple drivers
 // into one to be used as PubSub driver.
 //
 // The first driver is used to publish messages
-func NewPubSubDriverMerger(drivers ...PubSubDriverScaffold) (*PubSubDriverMerger, error) {
+func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, error) {
 
 	if len(drivers) == 0 {
 		return nil, errors.New("cannot create driver merger with no drivers")
@@ -40,17 +40,17 @@ func NewPubSubDriverMerger(drivers ...PubSubDriverScaffold) (*PubSubDriverMerger
 
 	// set executionFlag, check all drivers on compliance
 	var executionFlag Flag = -1
-	var metaDriverSlice = make([]pubSubDriverMergerDriverMeta, 0)
+	var metaDriverSlice = make([]metadataDriverWrapper, 0)
 	for _, d := range drivers {
 
 		if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
-			metaDriverSlice = append(metaDriverSlice, pubSubDriverMergerDriverMeta{
+			metaDriverSlice = append(metaDriverSlice, metadataDriverWrapper{
 				executionFlag: RequiresBlockingExecution,
 				driver:        d,
 			})
 
 		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
-			metaDriverSlice = append(metaDriverSlice, pubSubDriverMergerDriverMeta{
+			metaDriverSlice = append(metaDriverSlice, metadataDriverWrapper{
 				executionFlag: RequiresConcurrentExecution,
 				driver:        d,
 			})
@@ -59,7 +59,7 @@ func NewPubSubDriverMerger(drivers ...PubSubDriverScaffold) (*PubSubDriverMerger
 		}
 	}
 
-	return &PubSubDriverMerger{
+	return &syntheticDriver{
 		drivers:       metaDriverSlice,
 		executionFlag: executionFlag,
 		transmitChan:  make(chan interface{}, 1),
@@ -70,13 +70,13 @@ func NewPubSubDriverMerger(drivers ...PubSubDriverScaffold) (*PubSubDriverMerger
 }
 
 // GetDriverFlags returns the drivers flags to signal the type of execution
-func (p PubSubDriverMerger) GetDriverFlags() []Flag {
+func (p syntheticDriver) GetDriverFlags() []Flag {
 	return []Flag{RequiresConcurrentExecution}
 }
 
 // OpenStream opens each drivers streams and the relays those streams
 // onto the mergers own streams
-func (p PubSubDriverMerger) OpenStream() error {
+func (p syntheticDriver) OpenStream() error {
 
 	pubDriverPtr := &p.drivers[0].driver
 
@@ -191,7 +191,7 @@ func (p PubSubDriverMerger) OpenStream() error {
 
 // CloseStream closes each drivers streams by stopping the relaying
 // go routines
-func (p PubSubDriverMerger) CloseStream() error {
+func (p syntheticDriver) CloseStream() error {
 
 	var pubDriverPtr = &p.drivers[0].driver
 	for _, d := range p.drivers {
@@ -208,12 +208,12 @@ func (p PubSubDriverMerger) CloseStream() error {
 
 // GetMessageWriterChannel returns the channel to write message to be
 // published to
-func (p PubSubDriverMerger) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (p syntheticDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return p.transmitChan, nil
 }
 
 // GetMessageReaderChannel returns the channel to receive received messages
 // from
-func (p PubSubDriverMerger) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (p syntheticDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return p.receiveChan, nil
 }
