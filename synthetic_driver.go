@@ -159,7 +159,9 @@ func (p syntheticDriver) OpenStream() error {
 							log.Printf("%v", err)
 						}
 
-						p.receiveChan <- p.encodeMessage(msg, d.driver)
+						if msg != nil {
+							p.receiveChan <- p.encodeMessage(msg, d.driver)
+						}
 					}
 				}
 
@@ -218,7 +220,7 @@ func (p syntheticDriver) OpenStream() error {
 
 				for _, d := range p.drivers {
 
-					if reflect.DeepEqual(driverPtr, &d.driver) {
+					if reflect.DeepEqual(driverPtr, d.driver) {
 						d.transmitChan <- message
 						return
 					}
@@ -237,12 +239,11 @@ func (p syntheticDriver) OpenStream() error {
 // go routines
 func (p syntheticDriver) CloseStream() error {
 
-	var pubDriverPtr = &p.drivers[0].driver
 	for _, d := range p.drivers {
 
 		p.signalChan <- 1
 
-		if d.executionFlag == RequiresConcurrentExecution && reflect.DeepEqual(pubDriverPtr, &d.driver) {
+		if d.executionFlag == RequiresConcurrentExecution {
 			p.signalChan <- 1
 		}
 

@@ -1,6 +1,7 @@
 package brokerutil
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -9,7 +10,7 @@ func Test_newSyntheticDriver(t *testing.T) {
 
 	t.Run("should return new syntheticDriver with blocking driver without errors", func(t *testing.T) {
 
-		_, err := newSyntheticDriver(nil, observableTestDriver{executionFlag: RequiresBlockingExecution})
+		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: RequiresBlockingExecution})
 		if err != nil {
 			t.Errorf("newSyntheticDriver() error = %v", err)
 		}
@@ -17,7 +18,7 @@ func Test_newSyntheticDriver(t *testing.T) {
 
 	t.Run("should return new syntheticDriver with concurrent driver without errors", func(t *testing.T) {
 
-		_, err := newSyntheticDriver(nil, observableTestDriver{executionFlag: RequiresConcurrentExecution})
+		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: RequiresConcurrentExecution})
 		if err != nil {
 			t.Errorf("newSyntheticDriver() error = %v", err)
 		}
@@ -74,7 +75,7 @@ func Test_syntheticDriver_encodeMessage(t *testing.T) {
 		od := observableTestDriver{}
 
 		var message = "test driver"
-		var encoded = td.encodeMessage(message, od)
+		var encoded = td.encodeMessage(message, &od)
 
 		if !reflect.DeepEqual(message, encoded) {
 			t.Errorf("syntheticDriver.encodeMessage() did not return bare message")
@@ -92,11 +93,11 @@ func Test_syntheticDriver_encodeMessage(t *testing.T) {
 		od := observableTestDriver{}
 
 		var message = "test driver"
-		var encoded = td.encodeMessage(message, od)
+		var encoded = td.encodeMessage(message, &od)
 
 		var compare = syntheticMessageWithSource{
 			message: message,
-			source:  od,
+			source:  &od,
 		}
 
 		if !reflect.DeepEqual(encoded, compare) {
@@ -181,6 +182,203 @@ func Test_syntheticDriver_GetDriverFlags(t *testing.T) {
 		if !containsFlag(td.GetDriverFlags(), RequiresConcurrentExecution) {
 			t.Errorf("syntheticDriver.GetDriverFlags() did not return RequiresConcurrentExecution flag")
 		}
+	})
+}
+
+func Test_syntheticDriver_OpenStream(t *testing.T) {
+
+	t.Run("should invoke OpenStream on each driver", func(t *testing.T) {
+
+		var invokeCount = 0
+		var onOpenStream = func() error {
+			invokeCount++
+			return nil
+		}
+
+		od1 := observableTestDriver{
+			executionFlag:          RequiresConcurrentExecution,
+			openStreamCallbackFunc: onOpenStream,
+		}
+
+		od2 := observableTestDriver{
+			executionFlag:          RequiresConcurrentExecution,
+			openStreamCallbackFunc: onOpenStream,
+		}
+
+		d, err := newSyntheticDriver(nil, &od1, &od2)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		d.OpenStream()
+
+		defer d.CloseStream()
+
+		if invokeCount != 2 {
+			t.Errorf("syntheticDriver.OpenStream() did not invoke OpenStream in each driver")
+		}
+	})
+
+	t.Run("should return error from OpenStream from driver", func(t *testing.T) {
+
+		var onOpenStreamError = errors.New("test error")
+		var onOpenStream = func() error {
+			return onOpenStreamError
+		}
+
+		od := observableTestDriver{
+			executionFlag:          RequiresConcurrentExecution,
+			openStreamCallbackFunc: onOpenStream,
+		}
+
+		d, err := newSyntheticDriver(nil, &od)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = d.OpenStream()
+
+		if !reflect.DeepEqual(onOpenStreamError, err) {
+			t.Errorf("syntheticDriver.OpenStream() did not return error from OpenStream from driver")
+		}
+	})
+
+	t.Run("should return error when failing to cast concurrent driver", func(t *testing.T) {
+
+		md := missingImplementationPubSubDriver{
+			executionFlag: RequiresConcurrentExecution,
+		}
+
+		d, err := newSyntheticDriver(nil, md)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = d.OpenStream()
+
+		if err == nil {
+			t.Errorf("syntheticDriver.OpenStream() did not return error when failing to cast concurrent driver")
+		}
+	})
+
+	t.Run("should return error when failing to cast blocking driver", func(t *testing.T) {
+
+		md := missingImplementationPubSubDriver{
+			executionFlag: RequiresBlockingExecution,
+		}
+
+		d, err := newSyntheticDriver(nil, md)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+
+		err = d.OpenStream()
+
+		if err == nil {
+			t.Errorf("syntheticDriver.OpenStream() did not return error when failing to cast blocking driver")
+		}
+	})
+
+	t.Run("concurrent behaviour", func(t *testing.T) {
+
+		t.Run("should relay received messages unencoded from driver", func(t *testing.T) {
+
+			var messageReaderChannel = make(chan interface{}, 1)
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				return messageReaderChannel, nil
+			}
+
+			od := observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: false}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var message = "test message"
+			var messageReceiverChannel, _ = d.GetMessageReaderChannel()
+
+			messageReaderChannel <- message
+
+			if !reflect.DeepEqual(message, <-messageReceiverChannel) {
+				t.Errorf("syntheticDriver.OpenStream() did not relay received messages unencoded from driver")
+			}
+		})
+
+		t.Run("should relay received messages encoded from driver", func(t *testing.T) {
+
+			var messageReaderChannel = make(chan interface{}, 1)
+			var onGetMessageReaderChannel = func() (<-chan interface{}, error) {
+				return messageReaderChannel, nil
+			}
+
+			od := observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: true}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var message = "test message"
+			var messageReceiverChannel, _ = d.GetMessageReaderChannel()
+
+			messageReaderChannel <- message
+
+			msg, ok := (<-messageReceiverChannel).(syntheticMessageWithSource)
+			if !ok {
+				t.Errorf("syntheticDriver.OpenStream() did not relay received messages encoded from driver")
+			}
+
+			if !reflect.DeepEqual(msg.source, &od) {
+				t.Errorf("syntheticDriver.OpenStream() did not encoded driver correctly")
+			}
+
+		})
+
+		// t.Run("should relay published messages unencoded to driver", func(t *testing.T) {
+
+		// 	var messageWriterChannel = make(chan interface{}, 1)
+		// 	var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+		// 		return messageWriterChannel, nil
+		// 	}
+
+		// 	od := observableTestDriver{
+		// 		executionFlag:                       RequiresConcurrentExecution,
+		// 		getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+		// 	}
+
+		// 	d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: false}, &od)
+		// 	if err != nil {
+		// 		t.Errorf("%v", err)
+		// 	}
+
+		// 	d.OpenStream()
+
+		// 	defer d.CloseStream()
+
+		// 	var message = "test message"
+		// 	var messageSenderChannel, _ = d.GetMessageWriterChannel()
+
+		// 	messageSenderChannel <- message
+
+		// 	if !reflect.DeepEqual(message, <-messageWriterChannel) {
+		// 		t.Errorf("syntheticDriver.OpenStream() did not relay published messages unencoded to driver")
+		// 	}
+		// })
 	})
 }
 
