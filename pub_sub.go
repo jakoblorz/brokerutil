@@ -53,6 +53,25 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 	}, nil
 }
 
+// NewPubSubFromDrivers creates a new PubSub from the provided drivers
+//
+// Only the first driver is used to publish messages, for further functionality
+// use DriverAwarePubSub
+func NewPubSubFromDrivers(drivers ...PubSubDriverScaffold) (*PubSub, error) {
+
+	driverOptions := syntheticDriverOptions{
+		WrapMessageWithSource: false,
+		WrapMessageWithTarget: false,
+	}
+
+	driver, err := newSyntheticDriver(&driverOptions, drivers...)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPubSubFromDriver(driver)
+}
+
 // SubscribeAsync creates a new callback function which is invoked
 // on any incomming messages.
 //

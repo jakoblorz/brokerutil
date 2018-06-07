@@ -31,6 +31,7 @@ type syntheticMessageWithTarget struct {
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
 type syntheticDriver struct {
+	options      *syntheticDriverOptions
 	drivers      []metaDriverWrapper
 	transmitChan chan interface{}
 	receiveChan  chan interface{}
@@ -41,7 +42,7 @@ type syntheticDriver struct {
 // into one to be used as PubSub driver.
 //
 // The first driver is used to publish messages
-func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, error) {
+func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriverScaffold) (*syntheticDriver, error) {
 
 	if len(drivers) == 0 {
 		return nil, errors.New("cannot create driver merger with no drivers")
@@ -69,6 +70,7 @@ func newSyntheticDriver(drivers ...PubSubDriverScaffold) (*syntheticDriver, erro
 
 	return &syntheticDriver{
 		drivers:      metaDriverSlice,
+		options:      options,
 		transmitChan: make(chan interface{}, 1),
 		receiveChan:  make(chan interface{}, 1),
 		signalChan:   make(chan int),
