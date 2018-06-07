@@ -6,6 +6,13 @@ import (
 	"reflect"
 )
 
+var (
+	defaultSyntheticDriverOptions = &syntheticDriverOptions{
+		UseSyntheticMessageWithSource: false,
+		UseSyntheticMessageWithTarget: false,
+	}
+)
+
 type metaDriverWrapper struct {
 	executionFlag Flag
 	driver        PubSubDriverScaffold
@@ -13,17 +20,17 @@ type metaDriverWrapper struct {
 }
 
 type syntheticDriverOptions struct {
-	WrapMessageWithSource bool
-	WrapMessageWithTarget bool
+	UseSyntheticMessageWithSource bool
+	UseSyntheticMessageWithTarget bool
 }
 
 type syntheticMessageWithSource struct {
-	source  *PubSubDriverScaffold
+	source  PubSubDriverScaffold
 	message interface{}
 }
 
 type syntheticMessageWithTarget struct {
-	target  *PubSubDriverScaffold
+	target  PubSubDriverScaffold
 	message interface{}
 }
 
@@ -76,9 +83,17 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 
 }
 
-func (p syntheticDriver) encodeMessage(msg interface{}, d *PubSubDriverScaffold) interface{} {
+func (p syntheticDriver) getOptions() *syntheticDriverOptions {
+	if p.options == nil {
+		return defaultSyntheticDriverOptions
+	}
 
-	if p.options.WrapMessageWithSource {
+	return p.options
+}
+
+func (p syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold) interface{} {
+
+	if p.getOptions().UseSyntheticMessageWithSource {
 		return syntheticMessageWithSource{
 			message: msg,
 			source:  d,
@@ -88,9 +103,9 @@ func (p syntheticDriver) encodeMessage(msg interface{}, d *PubSubDriverScaffold)
 	return msg
 }
 
-func (p syntheticDriver) decodeMessage(msg interface{}) (interface{}, *PubSubDriverScaffold) {
+func (p syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriverScaffold) {
 
-	if !p.options.WrapMessageWithTarget {
+	if !p.getOptions().UseSyntheticMessageWithTarget {
 		return msg, nil
 	}
 
@@ -144,7 +159,7 @@ func (p syntheticDriver) OpenStream() error {
 							log.Printf("%v", err)
 						}
 
-						p.receiveChan <- p.encodeMessage(msg, &d.driver)
+						p.receiveChan <- p.encodeMessage(msg, d.driver)
 					}
 				}
 
@@ -180,7 +195,7 @@ func (p syntheticDriver) OpenStream() error {
 					case <-p.signalChan:
 						return
 					case msg := <-driverReceiveChan:
-						p.receiveChan <- p.encodeMessage(msg, &d.driver)
+						p.receiveChan <- p.encodeMessage(msg, d.driver)
 					}
 				}
 			}()
@@ -189,7 +204,7 @@ func (p syntheticDriver) OpenStream() error {
 
 	go func() {
 
-		first := &p.drivers[0].driver
+		first := p.drivers[0].driver
 
 		for {
 			select {

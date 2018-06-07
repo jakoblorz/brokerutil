@@ -60,8 +60,8 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 func NewPubSubFromDrivers(drivers ...PubSubDriverScaffold) (*PubSub, error) {
 
 	driverOptions := syntheticDriverOptions{
-		WrapMessageWithSource: false,
-		WrapMessageWithTarget: false,
+		UseSyntheticMessageWithSource: false,
+		UseSyntheticMessageWithTarget: false,
 	}
 
 	driver, err := newSyntheticDriver(&driverOptions, drivers...)

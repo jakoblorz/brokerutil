@@ -1,7 +1,7 @@
 package brokerutil
 
 // SubscriberFuncWithSource is the type of a subscriber func with provided driver information
-type SubscriberFuncWithSource func(interface{}, *PubSubDriverScaffold) error
+type SubscriberFuncWithSource func(interface{}, PubSubDriverScaffold) error
 
 // DriverAwarePubSub is an extension of PubSub with multiple drivers which enables its consumers
 // to control / be informed from which / to which broker a message is sent / received from
@@ -13,8 +13,8 @@ type DriverAwarePubSub struct {
 func NewDriverAwarePubSub(drivers ...PubSubDriverScaffold) (*DriverAwarePubSub, error) {
 
 	driverOptions := syntheticDriverOptions{
-		WrapMessageWithSource: true,
-		WrapMessageWithTarget: true,
+		UseSyntheticMessageWithSource: true,
+		UseSyntheticMessageWithTarget: true,
 	}
 
 	driver, err := newSyntheticDriver(&driverOptions, drivers...)
@@ -128,7 +128,7 @@ func (a DriverAwarePubSub) Publish(msg interface{}) error {
 
 // PublishWithTarget sends a message to the message broker. Specify the driver ptr to
 // send the message to.
-func (a DriverAwarePubSub) PublishWithTarget(msg interface{}, target *PubSubDriverScaffold) error {
+func (a DriverAwarePubSub) PublishWithTarget(msg interface{}, target PubSubDriverScaffold) error {
 	return a.pubSub.Publish(syntheticMessageWithTarget{
 		message: msg,
 		target:  target,

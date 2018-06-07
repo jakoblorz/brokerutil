@@ -230,6 +230,29 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	})
 }
 
+func TestNewPubSubFromDrivers(t *testing.T) {
+
+	t.Run("should not return errors", func(t *testing.T) {
+
+		od := observableTestDriver{}
+
+		_, err := NewPubSubFromDrivers(od)
+		if err != nil {
+			t.Errorf("NewPubSubFromDrivers() error = %v", err)
+		}
+	})
+
+	t.Run("should return pub sub", func(t *testing.T) {
+
+		od := observableTestDriver{}
+
+		ps, _ := NewPubSubFromDrivers(od)
+		if ps == nil {
+			t.Errorf("NewPubSubFromDrivers() did not return pub sub")
+		}
+	})
+}
+
 func Test_PubSub_Publish(t *testing.T) {
 
 	t.Run("should enqueue message when publishing", func(t *testing.T) {
