@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"sync"
 )
 
 var (
@@ -132,6 +133,8 @@ func (p syntheticDriver) OpenStream() error {
 			return err
 		}
 
+		var bootSync = &sync.WaitGroup{}
+
 		if d.executionFlag == RequiresBlockingExecution {
 
 			driver, ok := d.driver.(BlockingPubSubDriverScaffold)
@@ -139,7 +142,13 @@ func (p syntheticDriver) OpenStream() error {
 				return fmt.Errorf("cannot parse driver %v to BlockingPubSubDriverScaffold", d)
 			}
 
+			bootSync.Add(1)
+
 			go func() {
+
+				transmitChan := d.transmitChan
+
+				bootSync.Done()
 
 				for {
 					select {
@@ -147,7 +156,7 @@ func (p syntheticDriver) OpenStream() error {
 					case <-p.signalChan:
 						return
 
-					case msg := <-d.transmitChan:
+					case msg := <-transmitChan:
 						err := driver.PublishMessage(msg)
 						if err != nil {
 							log.Printf("%v", err)
@@ -174,15 +183,21 @@ func (p syntheticDriver) OpenStream() error {
 				return fmt.Errorf("cannot parse driver %v to ConcurrentPubSubDriverScaffold", d)
 			}
 
+			bootSync.Add(1)
+
 			go func() {
 
 				driverTransmitChan, _ := driver.GetMessageWriterChannel()
+
+				transmitChan := d.transmitChan
+
+				bootSync.Done()
 
 				for {
 					select {
 					case <-p.signalChan:
 						return
-					case msg := <-d.transmitChan:
+					case msg := <-transmitChan:
 						driverTransmitChan <- msg
 					}
 				}
@@ -202,6 +217,8 @@ func (p syntheticDriver) OpenStream() error {
 				}
 			}()
 		}
+
+		bootSync.Wait()
 	}
 
 	go func() {
