@@ -20,7 +20,7 @@ func newRoundRobinScheduler() roundRobinScheduler {
 	}
 }
 
-func (s roundRobinScheduler) NotifySubscribers(msg interface{}) error {
+func (s *roundRobinScheduler) NotifySubscribers(msg interface{}) error {
 
 	s.m.Lock()
 
@@ -45,7 +45,7 @@ func (s roundRobinScheduler) NotifySubscribers(msg interface{}) error {
 	return nil
 }
 
-func (s roundRobinScheduler) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (s *roundRobinScheduler) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 
 	identifier := SubscriberIdentifier(uuid.NewV4().String())
 
@@ -63,14 +63,14 @@ func (s roundRobinScheduler) SubscribeAsync(fn SubscriberFunc) (chan error, Subs
 	return sig, identifier
 }
 
-func (s roundRobinScheduler) SubscribeSync(fn SubscriberFunc) error {
+func (s *roundRobinScheduler) SubscribeSync(fn SubscriberFunc) error {
 
 	c, _ := s.SubscribeAsync(fn)
 
 	return <-c
 }
 
-func (s roundRobinScheduler) Unsubscribe(identifier SubscriberIdentifier) {
+func (s *roundRobinScheduler) Unsubscribe(identifier SubscriberIdentifier) {
 
 	s.m.Lock()
 
@@ -85,7 +85,7 @@ func (s roundRobinScheduler) Unsubscribe(identifier SubscriberIdentifier) {
 	delete(s.subscribers, identifier)
 }
 
-func (s roundRobinScheduler) UnsubscribeAll() {
+func (s *roundRobinScheduler) UnsubscribeAll() {
 
 	s.m.Lock()
 

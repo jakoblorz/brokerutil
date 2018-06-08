@@ -60,14 +60,14 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresBlockingExecution,
 				driver:        d,
-				transmitChan:  make(chan interface{}),
+				transmitChan:  make(chan interface{}, 1),
 			})
 
 		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresConcurrentExecution,
 				driver:        d,
-				transmitChan:  make(chan interface{}),
+				transmitChan:  make(chan interface{}, 1),
 			})
 		} else {
 			return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
@@ -84,7 +84,7 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 
 }
 
-func (p syntheticDriver) getOptions() *syntheticDriverOptions {
+func (p *syntheticDriver) getOptions() *syntheticDriverOptions {
 	if p.options == nil {
 		return defaultSyntheticDriverOptions
 	}
@@ -92,7 +92,7 @@ func (p syntheticDriver) getOptions() *syntheticDriverOptions {
 	return p.options
 }
 
-func (p syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold) interface{} {
+func (p *syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold) interface{} {
 
 	if p.getOptions().UseSyntheticMessageWithSource {
 		return syntheticMessageWithSource{
@@ -104,7 +104,7 @@ func (p syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold) 
 	return msg
 }
 
-func (p syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriverScaffold) {
+func (p *syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriverScaffold) {
 
 	if !p.getOptions().UseSyntheticMessageWithTarget {
 		return msg, nil
@@ -119,13 +119,13 @@ func (p syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriv
 }
 
 // GetDriverFlags returns the drivers flags to signal the type of execution
-func (p syntheticDriver) GetDriverFlags() []Flag {
+func (p *syntheticDriver) GetDriverFlags() []Flag {
 	return []Flag{RequiresConcurrentExecution}
 }
 
 // OpenStream opens each drivers streams and the relays those streams
 // onto the mergers own streams
-func (p syntheticDriver) OpenStream() error {
+func (p *syntheticDriver) OpenStream() error {
 
 	for _, d := range p.drivers {
 
@@ -254,7 +254,7 @@ func (p syntheticDriver) OpenStream() error {
 
 // CloseStream closes each drivers streams by stopping the relaying
 // go routines
-func (p syntheticDriver) CloseStream() error {
+func (p *syntheticDriver) CloseStream() error {
 
 	for _, d := range p.drivers {
 
@@ -275,12 +275,12 @@ func (p syntheticDriver) CloseStream() error {
 
 // GetMessageWriterChannel returns the channel to write message to be
 // published to
-func (p syntheticDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (p *syntheticDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return p.transmitChan, nil
 }
 
 // GetMessageReaderChannel returns the channel to receive received messages
 // from
-func (p syntheticDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (p *syntheticDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return p.receiveChan, nil
 }
