@@ -4,6 +4,17 @@ import (
 	"errors"
 )
 
+type pubSuber interface {
+	SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier)
+	SubscribeSync(fn SubscriberFunc) error
+	Unsubscribe(identifier SubscriberIdentifier)
+	UnsubscribeAll()
+	Publish(msg interface{}) error
+	ListenAsync() chan error
+	ListenSync() error
+	Terminate() error
+}
+
 // PubSub is the common "gateway" to reach to interact with the message broker such
 // as Publish / Subscribe. Independently from the implementation of the driver, it
 // guarantees that the exposed functions will work as expected.
@@ -36,7 +47,7 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 		_, ok := d.(BlockingPubSubDriverScaffold)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to plain driver")
+			return nil, errors.New("could not cast driver to blocking driver")
 		}
 
 		supportsConcurrency = false

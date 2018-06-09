@@ -6,7 +6,7 @@ type SubscriberFuncWithSource func(interface{}, PubSubDriverScaffold) error
 // DriverAwarePubSub is an extension of PubSub with multiple drivers which enables its consumers
 // to control / be informed from which / to which broker a message is sent / received from
 type DriverAwarePubSub struct {
-	pubSub *PubSub
+	pubSub pubSuber
 }
 
 // NewDriverAwarePubSub creates a new DriverAwarePubSub from the provided drivers
@@ -22,10 +22,7 @@ func NewDriverAwarePubSub(drivers ...PubSubDriverScaffold) (*DriverAwarePubSub, 
 		return nil, err
 	}
 
-	pubSub, err := NewPubSubFromDriver(driverPtr)
-	if err != nil {
-		return nil, err
-	}
+	pubSub, _ := NewPubSubFromDriver(driverPtr)
 
 	return &DriverAwarePubSub{
 		pubSub: pubSub,
