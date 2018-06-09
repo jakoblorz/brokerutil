@@ -138,7 +138,7 @@ type observableTestLoopbackDriver struct {
 }
 
 func (d *observableTestLoopbackDriver) GetDriverFlags() []Flag {
-	return []Flag{RequiresConcurrentExecution}
+	return []Flag{ConcurrentExecution}
 }
 
 func (d *observableTestLoopbackDriver) CloseStream() error {
@@ -203,7 +203,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: RequiresConcurrentExecution,
+			executionFlag: ConcurrentExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(&d)
@@ -219,7 +219,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to false when supporting driver is not present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
 		ps, err := NewPubSubFromDriver(&d)
@@ -235,7 +235,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should return error when calling with incompatible concurrent driver", func(t *testing.T) {
 
 		d := missingImplementationPubSubDriver{
-			executionFlag: RequiresConcurrentExecution,
+			executionFlag: ConcurrentExecution,
 		}
 
 		_, err := NewPubSubFromDriver(d)
@@ -247,7 +247,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should return error when calling with incompatible blocking driver", func(t *testing.T) {
 
 		d := missingImplementationPubSubDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
 		_, err := NewPubSubFromDriver(d)
@@ -477,7 +477,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 		}
 
 		ps, err := NewPubSubFromDriver(&observableTestDriver{
-			executionFlag:          RequiresBlockingExecution,
+			executionFlag:          BlockingExecution,
 			openStreamCallbackFunc: onOpenStream,
 		})
 
@@ -504,7 +504,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 		}
 
 		ps, err := NewPubSubFromDriver(&observableTestDriver{
-			executionFlag:          RequiresBlockingExecution,
+			executionFlag:          BlockingExecution,
 			openStreamCallbackFunc: onOpenStream,
 		})
 
@@ -532,7 +532,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 		}
 
 		ps, err := NewPubSubFromDriver(&observableTestDriver{
-			executionFlag:           RequiresBlockingExecution,
+			executionFlag:           BlockingExecution,
 			closeStreamCallbackFunc: onCloseStream,
 		})
 
@@ -560,7 +560,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 		}
 
 		ps, err := NewPubSubFromDriver(&observableTestDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		})
 
 		if err != nil {
@@ -592,7 +592,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				terminate:           make(chan int),
 				supportsConcurrency: true,
 				driver: missingImplementationPubSubDriver{
-					executionFlag: RequiresConcurrentExecution,
+					executionFlag: ConcurrentExecution,
 				},
 				scheduler: newScheduler(),
 			}
@@ -613,7 +613,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -641,7 +641,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -670,7 +670,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -698,7 +698,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -727,7 +727,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -767,7 +767,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -803,7 +803,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -841,7 +841,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				terminate:           make(chan int),
 				supportsConcurrency: false,
 				driver: missingImplementationPubSubDriver{
-					executionFlag: RequiresBlockingExecution,
+					executionFlag: BlockingExecution,
 				},
 				scheduler: newScheduler(),
 			}
@@ -868,7 +868,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				publishMessageCallbackFunc: onPublishMessage,
 			})
 
@@ -899,7 +899,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				publishMessageCallbackFunc: onPublishMessage,
 			})
 
@@ -933,7 +933,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				}
 
 				ps, err := NewPubSubFromDriver(&observableTestDriver{
-					executionFlag:              RequiresBlockingExecution,
+					executionFlag:              BlockingExecution,
 					receiveMessageCallbackFunc: onReceivePendingMessage,
 				})
 
@@ -965,7 +965,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 
@@ -1007,7 +1007,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onRecievePendingMessage,
 			})
 
@@ -1044,7 +1044,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 

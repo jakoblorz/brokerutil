@@ -19,7 +19,7 @@ type pubSuber interface {
 // as Publish / Subscribe. Independently from the implementation of the driver, it
 // guarantees that the exposed functions will work as expected.
 type PubSub struct {
-	driver              PubSubDriverScaffold
+	driver              PubSubDriver
 	scheduler           scheduler
 	supportsConcurrency bool
 
@@ -31,20 +31,20 @@ type PubSub struct {
 //
 // Depending on the implementation of the driver (single- or multithreaded)
 // a different PubSub implementation will be chosen.
-func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
+func NewPubSubFromDriver(d PubSubDriver) (*PubSub, error) {
 
 	var supportsConcurrency bool
 
-	if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
-		_, ok := d.(ConcurrentPubSubDriverScaffold)
+	if containsFlag(d.GetDriverFlags(), ConcurrentExecution) {
+		_, ok := d.(ConcurrentPubSubDriver)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to concurrency supporting driver")
 		}
 
 		supportsConcurrency = true
-	} else if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
-		_, ok := d.(BlockingPubSubDriverScaffold)
+	} else if containsFlag(d.GetDriverFlags(), BlockingExecution) {
+		_, ok := d.(BlockingPubSubDriver)
 
 		if !ok {
 			return nil, errors.New("could not cast driver to blocking driver")
@@ -68,7 +68,7 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 //
 // Only the first driver is used to publish messages, for further functionality
 // use DriverAwarePubSub
-func NewPubSubFromDrivers(drivers ...PubSubDriverScaffold) (*PubSub, error) {
+func NewPubSubFromDrivers(drivers ...PubSubDriver) (*PubSub, error) {
 
 	driverOptions := syntheticDriverOptions{
 		UseSyntheticMessageWithSource: false,
@@ -155,7 +155,7 @@ func (a *PubSub) ListenSync() error {
 	//
 	if a.supportsConcurrency {
 
-		d, ok := a.driver.(ConcurrentPubSubDriverScaffold)
+		d, ok := a.driver.(ConcurrentPubSubDriver)
 
 		if !ok {
 			return errors.New("driver does not support concurrency, could not cast to correct interface")
@@ -201,7 +201,7 @@ func (a *PubSub) ListenSync() error {
 	// such as recieving and writing from different goroutines
 	//
 
-	d, ok := a.driver.(BlockingPubSubDriverScaffold)
+	d, ok := a.driver.(BlockingPubSubDriver)
 
 	if !ok {
 		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")
