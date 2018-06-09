@@ -14,7 +14,7 @@ type observableTestDriver struct {
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
 	openStreamCallbackFunc              func() error
-	receivePendingMessageCallbackFunc   func() (interface{}, error)
+	receiveMessageCallbackFunc          func() (interface{}, error)
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
@@ -47,8 +47,8 @@ func (d *observableTestDriver) OpenStream() error {
 
 func (d *observableTestDriver) ReceiveMessage() (interface{}, error) {
 
-	if d.receivePendingMessageCallbackFunc != nil {
-		return d.receivePendingMessageCallbackFunc()
+	if d.receiveMessageCallbackFunc != nil {
+		return d.receiveMessageCallbackFunc()
 	}
 
 	return nil, nil
@@ -923,8 +923,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				}
 
 				ps, err := NewPubSubFromDriver(&observableTestDriver{
-					executionFlag:                     RequiresBlockingExecution,
-					receivePendingMessageCallbackFunc: onReceivePendingMessage,
+					executionFlag:              RequiresBlockingExecution,
+					receiveMessageCallbackFunc: onReceivePendingMessage,
 				})
 
 				if err != nil {
@@ -955,8 +955,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onReceivePendingMessage,
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {
@@ -997,8 +997,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onRecievePendingMessage,
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onRecievePendingMessage,
 			})
 
 			if err != nil {
@@ -1034,8 +1034,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			}
 
 			ps, err := NewPubSubFromDriver(&observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onReceivePendingMessage,
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {

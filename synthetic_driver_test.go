@@ -3,7 +3,9 @@ package brokerutil
 import (
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
+	"time"
 )
 
 func Test_newSyntheticDriver(t *testing.T) {
@@ -411,15 +413,185 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 				target:  &od1,
 			}
 
-			var messageSenderChannl, _ = d.GetMessageWriterChannel()
+			var messageSenderChannel, _ = d.GetMessageWriterChannel()
 
-			messageSenderChannl <- message
+			messageSenderChannel <- message
 
-			if receivedMessage := <-messageWriterChannel; !reflect.DeepEqual(messagePayload, receivedMessage) {
+			if !reflect.DeepEqual(messagePayload, <-messageWriterChannel) {
 				t.Errorf("syntheticDriver.OpenStream() did not relay published message unwrapped encoded to correct driver")
 			}
 		})
+	})
 
+	t.Run("blocking behaviour", func(t *testing.T) {
+
+		t.Run("should relay received message unencoded from driver", func(t *testing.T) {
+
+			var message = "test message"
+			var onReceiveMessage = func() (interface{}, error) {
+				return message, nil
+			}
+
+			od := observableTestDriver{
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceiveMessage,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: false}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var messageReaderChannel, _ = d.GetMessageReaderChannel()
+
+			if !reflect.DeepEqual(message, <-messageReaderChannel) {
+				t.Errorf("syntheticDriver.OpenStream() did not relay received message unencoded from driver")
+			}
+		})
+
+		t.Run("should relay received messages encoded from driver", func(t *testing.T) {
+
+			var message = "test message"
+			var onReceiveMessage = func() (interface{}, error) {
+				return message, nil
+			}
+
+			od := observableTestDriver{
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceiveMessage,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: true}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var messageReaderChannel, _ = d.GetMessageReaderChannel()
+			var expectedMessage = syntheticMessageWithSource{
+				message: message,
+				source:  &od,
+			}
+
+			if !reflect.DeepEqual(expectedMessage, <-messageReaderChannel) {
+				t.Errorf("syntheticDriver.OpenStream() did not relay received message encoded from driver")
+			}
+		})
+
+		t.Run("should relay published message unencoded to driver", func(t *testing.T) {
+
+			var s = &sync.WaitGroup{}
+
+			var message = "test message"
+			var onReceiveMessage = func() (interface{}, error) {
+				time.Sleep(time.Millisecond)
+				return nil, nil
+			}
+
+			s.Add(1)
+
+			var onPublishMessage = func(msg interface{}) error {
+
+				if !reflect.DeepEqual(message, msg) {
+					t.Errorf("syntheticDriver.OpenStream() did not relay received message unencoded to driver")
+				}
+
+				s.Done()
+
+				return nil
+			}
+
+			od := observableTestDriver{
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceiveMessage,
+				publishMessageCallbackFunc: onPublishMessage,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithTarget: false}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var messagePublishChannel, _ = d.GetMessageWriterChannel()
+
+			messagePublishChannel <- message
+
+			s.Wait()
+		})
+
+		t.Run("should relay published encoded message unencoded to correct driver", func(t *testing.T) {
+
+			var s = &sync.WaitGroup{}
+
+			var messagePayload = "test message"
+			var onReceiveMessage = func() (interface{}, error) {
+				time.Sleep(time.Millisecond)
+				return nil, nil
+			}
+
+			s.Add(1)
+
+			var onPublishMessage = func(msg interface{}) error {
+
+				if !reflect.DeepEqual(messagePayload, msg) {
+					t.Errorf("syntheticDriver.OpenStream() did not relay published encoded message unencoded to driver")
+				}
+
+				s.Done()
+
+				return nil
+			}
+
+			var onPublishMessageWrongDriver = func(msg interface{}) error {
+
+				t.Errorf("syntheticDriver.OpenStream() did not relay message to correct driver")
+
+				return nil
+			}
+
+			od1 := observableTestDriver{
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceiveMessage,
+				publishMessageCallbackFunc: onPublishMessage,
+			}
+
+			od2 := observableTestDriver{
+				executionFlag:              RequiresBlockingExecution,
+				receiveMessageCallbackFunc: onReceiveMessage,
+				publishMessageCallbackFunc: onPublishMessageWrongDriver,
+			}
+
+			var message = syntheticMessageWithTarget{
+				message: messagePayload,
+				target:  &od1,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithTarget: true}, &od1, &od2)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var messagePublishChannel, _ = d.GetMessageWriterChannel()
+
+			messagePublishChannel <- message
+
+			s.Wait()
+		})
 	})
 }
 

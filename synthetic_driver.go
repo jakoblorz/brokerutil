@@ -2,7 +2,6 @@ package brokerutil
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"sync"
 )
@@ -159,16 +158,10 @@ func (p *syntheticDriver) OpenStream() error {
 						return
 
 					case msg := <-receiveFromApplication:
-						err := driver.PublishMessage(msg)
-						if err != nil {
-							log.Printf("%v", err)
-						}
+						driver.PublishMessage(msg)
 
 					default:
-						msg, err := driver.ReceiveMessage()
-						if err != nil {
-							log.Printf("%v", err)
-						}
+						msg, _ := driver.ReceiveMessage()
 
 						if msg != nil {
 							p.in <- p.encodeMessage(msg, d.driver)
