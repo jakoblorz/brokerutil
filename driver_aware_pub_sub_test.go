@@ -416,3 +416,199 @@ func TestDriverAwarePubSub_SubscribeSyncWithSource(t *testing.T) {
 
 	})
 }
+
+func TestDriverAwarePubSub_Unsubscribe(t *testing.T) {
+
+	t.Run("should invoke Unsubscribe on pub sub", func(t *testing.T) {
+
+		var unsubscribeInvoked = false
+		var onUnsubscribe = func(SubscriberIdentifier) {
+			unsubscribeInvoked = true
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				unsubscribeCallbackFunc: onUnsubscribe,
+			},
+		}
+
+		d.Unsubscribe("")
+
+		if unsubscribeInvoked == false {
+			t.Error("DriverAwarePubSub.Unsubscribe() did not invoked Unsubscribe on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_UnsubscribeAll(t *testing.T) {
+
+	t.Run("should invoke UnsubscribeAll on pub sub", func(t *testing.T) {
+
+		var unsubscribeAllInvoked = false
+		var onUnsubscribeAll = func() {
+			unsubscribeAllInvoked = true
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				unsubscribeAllCallbackFunc: onUnsubscribeAll,
+			},
+		}
+
+		d.UnsubscribeAll()
+
+		if unsubscribeAllInvoked == false {
+			t.Error("DriverAwarePubSub.UnsubscribeAll() did not invoked UnsubscribeAll on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_Publish(t *testing.T) {
+
+	t.Run("should invoke Publish on pub sub with wrapped message", func(t *testing.T) {
+
+		var message = "test message"
+
+		var publishInvoked = false
+		var onPublish = func(msg interface{}) error {
+			publishInvoked = true
+
+			m, ok := msg.(syntheticMessageWithTarget)
+			if !ok {
+				t.Error("DriverAwarePubSub.Publish() did not invoke Publish on pub sub with wrapped message")
+			}
+
+			if !reflect.DeepEqual(message, m.message) {
+				t.Error("DriverAwarePubSub.Publish() did not invoke Publish on pub sub with wrapped message with correct content")
+			}
+
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				publishCallbackFunc: onPublish,
+			},
+		}
+
+		d.Publish(message)
+
+		if publishInvoked == false {
+			t.Error("DriverAwarePubSub.Unsubscribe() did not invoke Publish on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_PublishWithTarget(t *testing.T) {
+
+	t.Run("should invoke Publish on pub sub with wrapped message and driver", func(t *testing.T) {
+
+		var message = "test message"
+		var driver = observableTestDriver{}
+
+		var publishInvoked = false
+		var onPublish = func(msg interface{}) error {
+			publishInvoked = true
+
+			m, ok := msg.(syntheticMessageWithTarget)
+			if !ok {
+				t.Error("DriverAwarePubSub.PublishWithTarget() did not invoke Publish on pub sub with wrapped message")
+			}
+
+			if !reflect.DeepEqual(message, m.message) {
+				t.Error("DriverAwarePubSub.PublishWithTarget() did not invoke Publish on pub sub with wrapped message with correct content")
+			}
+
+			if !reflect.DeepEqual(&driver, m.target) {
+				t.Error("DriverAwarePubSub.PublishWithTarget() did not invoke Publish on pub sub with wrapped message with correct driver")
+			}
+
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				publishCallbackFunc: onPublish,
+			},
+		}
+
+		d.PublishWithTarget(message, &driver)
+
+		if publishInvoked == false {
+			t.Error("DriverAwarePubSub.PublishWithTarget() did not invoke Publish on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_ListenAsync(t *testing.T) {
+
+	t.Run("should invoke ListenAsync on pub sub", func(t *testing.T) {
+
+		var listenAsyncInvoked = false
+		var onListenAsync = func() chan error {
+			listenAsyncInvoked = true
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				listenAsyncCallbackFunc: onListenAsync,
+			},
+		}
+
+		d.ListenAsync()
+
+		if listenAsyncInvoked == false {
+			t.Error("DriverAwarePubSub.ListenAsync() did not invoked ListenAsync on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_ListenSync(t *testing.T) {
+
+	t.Run("should invoke ListenSync on pub sub", func(t *testing.T) {
+
+		var listenSyncInvoked = false
+		var onListenSync = func() error {
+			listenSyncInvoked = true
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				listenSyncCallbackFunc: onListenSync,
+			},
+		}
+
+		d.ListenSync()
+
+		if listenSyncInvoked == false {
+			t.Error("DriverAwarePubSub.ListenSync() did not invoked ListenSync on pub sub")
+		}
+	})
+}
+
+func TestDriverAwarePubSub_Terminate(t *testing.T) {
+
+	t.Run("should invoke Terminate on pub sub", func(t *testing.T) {
+
+		var terminateInvoked = false
+		var onTerminate = func() error {
+			terminateInvoked = true
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				terminateCallbackFunc: onTerminate,
+			},
+		}
+
+		d.Terminate()
+
+		if terminateInvoked == false {
+			t.Error("DriverAwarePubSub.Terminate() did not invoked Terminate on pub sub")
+		}
+	})
+
+}
