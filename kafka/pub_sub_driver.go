@@ -24,7 +24,7 @@ type PubSubDriver struct {
 func NewKafkaPubSubDriverFromClient(topic string, client *sarama.Client) (*PubSubDriver, error) {
 
 	return &PubSubDriver{
-		signal:       make(chan int),
+		signal:       make(chan int, 1),
 		client:       client,
 		topic:        topic,
 		transmitChan: make(chan interface{}, 1),
@@ -53,6 +53,10 @@ func (p *PubSubDriver) GetDriverFlags() []brokerutil.Flag {
 // OpenStream initializes the communication channels
 func (p *PubSubDriver) OpenStream() error {
 
+	var s = &sync.WaitGroup{}
+
+	s.Add(2)
+
 	// tx routine
 	go func() {
 
@@ -75,6 +79,8 @@ func (p *PubSubDriver) OpenStream() error {
 				log.Printf("PubSubDriver.OpenStream() AsyncProducer error = %v", err)
 			}
 		}()
+
+		s.Done()
 
 		for {
 			select {
@@ -119,6 +125,8 @@ func (p *PubSubDriver) OpenStream() error {
 			}
 		}()
 
+		s.Done()
+
 		for {
 			select {
 			case <-p.signal:
@@ -128,6 +136,8 @@ func (p *PubSubDriver) OpenStream() error {
 			}
 		}
 	}()
+
+	s.Wait()
 
 	return nil
 }
