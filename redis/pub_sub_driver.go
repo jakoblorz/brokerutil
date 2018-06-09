@@ -42,12 +42,12 @@ func NewRedisPubSubDriver(channels []string, opts *redis.Options) (*PubSubDriver
 }
 
 // GetDriverFlags returns flags which indicate the capabilities
-func (p PubSubDriver) GetDriverFlags() []brokerutil.Flag {
+func (p *PubSubDriver) GetDriverFlags() []brokerutil.Flag {
 	return []brokerutil.Flag{brokerutil.RequiresConcurrentExecution}
 }
 
 // OpenStream initializes the communication channels protocol + network
-func (p PubSubDriver) OpenStream() error {
+func (p *PubSubDriver) OpenStream() error {
 
 	channel := p.client.Subscribe(p.channelNames...)
 
@@ -100,7 +100,7 @@ func (p PubSubDriver) OpenStream() error {
 }
 
 // CloseStream cleans the communication routines up
-func (p PubSubDriver) CloseStream() error {
+func (p *PubSubDriver) CloseStream() error {
 	p.signal <- 1
 	p.signal <- 1
 	p.signal <- 1
@@ -110,12 +110,12 @@ func (p PubSubDriver) CloseStream() error {
 
 // GetMessageWriterChannel returns the channel to write to
 // if a message needs to be sent / published
-func (p PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (p *PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return p.transmitCh, nil
 }
 
 // GetMessageReaderChannel returns the channel to read from
 // if a message was received
-func (p PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (p *PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return p.receiveCh, nil
 }
