@@ -40,7 +40,7 @@ func NewKafkaPubSubDriver(topic string, brokers []string, config *sarama.Config)
 	}, nil
 }
 
-func (p PubSubDriver) getSyncedClient() sarama.Client {
+func (p *PubSubDriver) getSyncedClient() sarama.Client {
 
 	p.m.Lock()
 
@@ -53,12 +53,12 @@ func (p PubSubDriver) getSyncedClient() sarama.Client {
 
 // GetDriverFlags returns flags which indicate the capabilites
 // and execution plan
-func (p PubSubDriver) GetDriverFlags() []brokerutil.Flag {
+func (p *PubSubDriver) GetDriverFlags() []brokerutil.Flag {
 	return []brokerutil.Flag{brokerutil.RequiresConcurrentExecution}
 }
 
 // OpenStream initializes the communication channels
-func (p PubSubDriver) OpenStream() error {
+func (p *PubSubDriver) OpenStream() error {
 
 	// tx routine
 	go func() {
@@ -140,7 +140,7 @@ func (p PubSubDriver) OpenStream() error {
 }
 
 // CloseStream cleans the communication routines
-func (p PubSubDriver) CloseStream() error {
+func (p *PubSubDriver) CloseStream() error {
 	p.signal <- 1
 	p.signal <- 1
 	return nil
@@ -148,12 +148,12 @@ func (p PubSubDriver) CloseStream() error {
 
 // GetMessageWriterChannel returns the channel to write to
 // to send / publish a message
-func (p PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (p *PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return p.transmitChan, nil
 }
 
 // GetMessageReaderChannel returns the channel to read messages
 // from
-func (p PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (p *PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return p.receiveChan, nil
 }
