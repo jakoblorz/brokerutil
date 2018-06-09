@@ -54,7 +54,7 @@ func TestPubSubDriver_GetDriverFlags(t *testing.T) {
 	}{
 		{
 			name: "should return flags array containing concurrency driver flag",
-			want: []brokerutil.Flag{brokerutil.RequiresConcurrentExecution},
+			want: []brokerutil.Flag{brokerutil.ConcurrentExecution},
 		},
 	}
 	for _, tt := range tests {
