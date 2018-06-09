@@ -1,7 +1,6 @@
 package brokerutil
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 )
@@ -70,7 +69,7 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 				out:           make(chan interface{}, 1),
 			})
 		} else {
-			return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
+			return nil, ErrMissingExecutionFlag
 		}
 	}
 
@@ -140,7 +139,7 @@ func (p *syntheticDriver) OpenStream() error {
 
 			driver, ok := d.driver.(BlockingPubSubDriver)
 			if !ok {
-				return fmt.Errorf("cannot parse driver %v to BlockingPubSubDriverScaffold", d)
+				return ErrBlockingDriverCast
 			}
 
 			s.Add(1)
@@ -175,7 +174,7 @@ func (p *syntheticDriver) OpenStream() error {
 
 			driver, ok := d.driver.(ConcurrentPubSubDriver)
 			if !ok {
-				return fmt.Errorf("cannot parse driver %v to ConcurrentPubSubDriverScaffold", d)
+				return ErrConcurrentDriverCast
 			}
 
 			s.Add(1)

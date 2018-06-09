@@ -4,6 +4,21 @@ import (
 	"errors"
 )
 
+var (
+
+	// ErrConcurrentDriverCast is the error thrown when a cast to a concurrent driver
+	// failed
+	ErrConcurrentDriverCast = errors.New("could not cast driver to concurrency driver")
+
+	// ErrBlockingDriverCast is the error thrown when a cast to a blocking driver
+	// failed
+	ErrBlockingDriverCast = errors.New("could not cast driver to blocking driver")
+
+	// ErrMissingExecutionFlag is the error thrown when the GetDriverFlags() function
+	// returned an array / slice missing a execution flag
+	ErrMissingExecutionFlag = errors.New("could not find execution flag")
+)
+
 type pubSuber interface {
 	SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier)
 	SubscribeSync(fn SubscriberFunc) error
@@ -39,7 +54,7 @@ func NewPubSubFromDriver(d PubSubDriver) (*PubSub, error) {
 		_, ok := d.(ConcurrentPubSubDriver)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to concurrency supporting driver")
+			return nil, ErrConcurrentDriverCast
 		}
 
 		supportsConcurrency = true
@@ -47,12 +62,12 @@ func NewPubSubFromDriver(d PubSubDriver) (*PubSub, error) {
 		_, ok := d.(BlockingPubSubDriver)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to blocking driver")
+			return nil, ErrBlockingDriverCast
 		}
 
 		supportsConcurrency = false
 	} else {
-		return nil, errors.New("could not create execution plan for given driver - flags do not reflect requirements")
+		return nil, ErrMissingExecutionFlag
 	}
 
 	return &PubSub{
@@ -158,7 +173,7 @@ func (a *PubSub) ListenSync() error {
 		d, ok := a.driver.(ConcurrentPubSubDriver)
 
 		if !ok {
-			return errors.New("driver does not support concurrency, could not cast to correct interface")
+			return ErrConcurrentDriverCast
 		}
 
 		tx, err := d.GetMessageWriterChannel()
@@ -204,7 +219,7 @@ func (a *PubSub) ListenSync() error {
 	d, ok := a.driver.(BlockingPubSubDriver)
 
 	if !ok {
-		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")
+		return ErrBlockingDriverCast
 	}
 
 	for {
