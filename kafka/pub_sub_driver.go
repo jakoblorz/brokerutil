@@ -12,7 +12,6 @@ import (
 // to allow pub sub functionality over kafka
 type PubSubDriver struct {
 	signal       chan int
-	config       *sarama.Config
 	client       *sarama.Client
 	topic        string
 	transmitChan chan interface{}
@@ -21,18 +20,12 @@ type PubSubDriver struct {
 	m *sync.Mutex
 }
 
-// NewKafkaPubSubDriver creates a new kafka pub sub driver
-func NewKafkaPubSubDriver(topic string, brokers []string, config *sarama.Config) (*PubSubDriver, error) {
-
-	client, err := sarama.NewClient(brokers, config)
-	if err != nil {
-		return nil, err
-	}
+// NewKafkaPubSubDriverFromClient creates a new kafka pub sub driver
+func NewKafkaPubSubDriverFromClient(topic string, client *sarama.Client) (*PubSubDriver, error) {
 
 	return &PubSubDriver{
 		signal:       make(chan int),
-		config:       config,
-		client:       &client,
+		client:       client,
 		topic:        topic,
 		transmitChan: make(chan interface{}, 1),
 		receiveChan:  make(chan interface{}, 1),
