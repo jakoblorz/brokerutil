@@ -14,11 +14,11 @@ type observableTestDriver struct {
 	getMessageReaderChannelCallbackFunc func() (<-chan interface{}, error)
 	closeStreamCallbackFunc             func() error
 	openStreamCallbackFunc              func() error
-	receivePendingMessageCallbackFunc   func() (interface{}, error)
+	receiveMessageCallbackFunc          func() (interface{}, error)
 	publishMessageCallbackFunc          func(interface{}) error
 }
 
-func (d observableTestDriver) GetDriverFlags() []Flag {
+func (d *observableTestDriver) GetDriverFlags() []Flag {
 
 	if d.getDriverTypeCallbackFunc != nil {
 		return d.getDriverTypeCallbackFunc()
@@ -27,7 +27,7 @@ func (d observableTestDriver) GetDriverFlags() []Flag {
 	return []Flag{d.executionFlag}
 }
 
-func (d observableTestDriver) CloseStream() error {
+func (d *observableTestDriver) CloseStream() error {
 
 	if d.closeStreamCallbackFunc != nil {
 		return d.closeStreamCallbackFunc()
@@ -36,7 +36,7 @@ func (d observableTestDriver) CloseStream() error {
 	return nil
 }
 
-func (d observableTestDriver) OpenStream() error {
+func (d *observableTestDriver) OpenStream() error {
 
 	if d.openStreamCallbackFunc != nil {
 		return d.openStreamCallbackFunc()
@@ -45,16 +45,16 @@ func (d observableTestDriver) OpenStream() error {
 	return nil
 }
 
-func (d observableTestDriver) ReceiveMessage() (interface{}, error) {
+func (d *observableTestDriver) ReceiveMessage() (interface{}, error) {
 
-	if d.receivePendingMessageCallbackFunc != nil {
-		return d.receivePendingMessageCallbackFunc()
+	if d.receiveMessageCallbackFunc != nil {
+		return d.receiveMessageCallbackFunc()
 	}
 
 	return nil, nil
 }
 
-func (d observableTestDriver) PublishMessage(msg interface{}) error {
+func (d *observableTestDriver) PublishMessage(msg interface{}) error {
 
 	if d.publishMessageCallbackFunc != nil {
 		return d.publishMessageCallbackFunc(msg)
@@ -63,7 +63,7 @@ func (d observableTestDriver) PublishMessage(msg interface{}) error {
 	return nil
 }
 
-func (d observableTestDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (d *observableTestDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 
 	if d.getMessageWriterChannelCallbackFunc != nil {
 		return d.getMessageWriterChannelCallbackFunc()
@@ -72,7 +72,7 @@ func (d observableTestDriver) GetMessageWriterChannel() (chan<- interface{}, err
 	return nil, nil
 }
 
-func (d observableTestDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (d *observableTestDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 
 	if d.getMessageReaderChannelCallbackFunc != nil {
 		return d.getMessageReaderChannelCallbackFunc()
@@ -130,6 +130,43 @@ func (o observableTestScheduler) UnsubscribeAll() {
 	}
 }
 
+type observableTestLoopbackDriver struct {
+	channel chan interface{}
+
+	getMessageWriterChannelFunc func()
+	getMessageReaderChannelFunc func()
+}
+
+func (d *observableTestLoopbackDriver) GetDriverFlags() []Flag {
+	return []Flag{ConcurrentExecution}
+}
+
+func (d *observableTestLoopbackDriver) CloseStream() error {
+	return nil
+}
+
+func (d *observableTestLoopbackDriver) OpenStream() error {
+	return nil
+}
+
+func (d *observableTestLoopbackDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+
+	if d.getMessageWriterChannelFunc != nil {
+		d.getMessageWriterChannelFunc()
+	}
+
+	return d.channel, nil
+}
+
+func (d *observableTestLoopbackDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+
+	if d.getMessageReaderChannelFunc != nil {
+		d.getMessageReaderChannelFunc()
+	}
+
+	return d.channel, nil
+}
+
 type missingImplementationPubSubDriver struct {
 	executionFlag Flag
 }
@@ -166,10 +203,10 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to true when supporting driver is present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: RequiresConcurrentExecution,
+			executionFlag: ConcurrentExecution,
 		}
 
-		ps, err := NewPubSubFromDriver(d)
+		ps, err := NewPubSubFromDriver(&d)
 		if err != nil {
 			t.Error(err)
 		}
@@ -182,10 +219,10 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should set supportsConcurrency to false when supporting driver is not present", func(t *testing.T) {
 
 		d := observableTestDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
-		ps, err := NewPubSubFromDriver(d)
+		ps, err := NewPubSubFromDriver(&d)
 		if err != nil {
 			t.Error(err)
 		}
@@ -198,7 +235,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should return error when calling with incompatible concurrent driver", func(t *testing.T) {
 
 		d := missingImplementationPubSubDriver{
-			executionFlag: RequiresConcurrentExecution,
+			executionFlag: ConcurrentExecution,
 		}
 
 		_, err := NewPubSubFromDriver(d)
@@ -210,7 +247,7 @@ func TestNewPubSubFromDriver(t *testing.T) {
 	t.Run("should return error when calling with incompatible blocking driver", func(t *testing.T) {
 
 		d := missingImplementationPubSubDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
 		_, err := NewPubSubFromDriver(d)
@@ -226,6 +263,39 @@ func TestNewPubSubFromDriver(t *testing.T) {
 		_, err := NewPubSubFromDriver(d)
 		if err == nil {
 			t.Error("NewPubSubFromDriver() did not return error when driver does not return execution flag")
+		}
+	})
+}
+
+func TestNewPubSubFromDrivers(t *testing.T) {
+
+	t.Run("should not return errors", func(t *testing.T) {
+
+		od := observableTestDriver{}
+
+		_, err := NewPubSubFromDrivers(&od)
+		if err != nil {
+			t.Errorf("NewPubSubFromDrivers() error = %v", err)
+		}
+	})
+
+	t.Run("should return error from synthetic driver constructor", func(t *testing.T) {
+
+		md := missingExecutionFlagPubSubDriver{}
+
+		_, err := NewPubSubFromDrivers(&md)
+		if err == nil {
+			t.Errorf("NewPubSubFromDrivers() error = %v", err)
+		}
+	})
+
+	t.Run("should return pub sub", func(t *testing.T) {
+
+		od := observableTestDriver{}
+
+		ps, _ := NewPubSubFromDrivers(&od)
+		if ps == nil {
+			t.Errorf("NewPubSubFromDrivers() did not return pub sub")
 		}
 	})
 }
@@ -355,7 +425,7 @@ func Test_PubSub_ListenAsync(t *testing.T) {
 
 	t.Run("should return error channel", func(t *testing.T) {
 
-		ps, err := NewPubSubFromDriver(observableTestDriver{})
+		ps, err := NewPubSubFromDriver(&observableTestDriver{})
 		if err != nil {
 			t.Error(err)
 		}
@@ -376,7 +446,7 @@ func Test_PubSub_ListenAsync(t *testing.T) {
 	// 		return onOpenStreamError
 	// 	}
 
-	// 	ps, err := NewPubSubFromDriver(observableTestDriver{
+	// 	ps, err := NewPubSubFromDriver(&observableTestDriver{
 	// 		openStreamCallbackFunc: onOpenStream,
 	// 	})
 
@@ -406,8 +476,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			return nil
 		}
 
-		ps, err := NewPubSubFromDriver(observableTestDriver{
-			executionFlag:          RequiresBlockingExecution,
+		ps, err := NewPubSubFromDriver(&observableTestDriver{
+			executionFlag:          BlockingExecution,
 			openStreamCallbackFunc: onOpenStream,
 		})
 
@@ -433,8 +503,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			return onOpenStreamError
 		}
 
-		ps, err := NewPubSubFromDriver(observableTestDriver{
-			executionFlag:          RequiresBlockingExecution,
+		ps, err := NewPubSubFromDriver(&observableTestDriver{
+			executionFlag:          BlockingExecution,
 			openStreamCallbackFunc: onOpenStream,
 		})
 
@@ -461,8 +531,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			return nil
 		}
 
-		ps, err := NewPubSubFromDriver(observableTestDriver{
-			executionFlag:           RequiresBlockingExecution,
+		ps, err := NewPubSubFromDriver(&observableTestDriver{
+			executionFlag:           BlockingExecution,
 			closeStreamCallbackFunc: onCloseStream,
 		})
 
@@ -489,8 +559,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 			onUnsubscribeAllInvoked = true
 		}
 
-		ps, err := NewPubSubFromDriver(observableTestDriver{
-			executionFlag: RequiresBlockingExecution,
+		ps, err := NewPubSubFromDriver(&observableTestDriver{
+			executionFlag: BlockingExecution,
 		})
 
 		if err != nil {
@@ -522,7 +592,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				terminate:           make(chan int),
 				supportsConcurrency: true,
 				driver: missingImplementationPubSubDriver{
-					executionFlag: RequiresConcurrentExecution,
+					executionFlag: ConcurrentExecution,
 				},
 				scheduler: newScheduler(),
 			}
@@ -542,8 +612,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return make(chan<- interface{}), nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -570,8 +640,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil, onGetMessageWriterChannelError
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -599,8 +669,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return make(<-chan interface{}), nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -627,8 +697,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil, onGetMessageReaderChannelError
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -656,8 +726,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return messageWriterChannel, nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			})
 
@@ -696,8 +766,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -732,8 +802,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return onNotifySubscribersError
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			})
 
@@ -771,7 +841,7 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				terminate:           make(chan int),
 				supportsConcurrency: false,
 				driver: missingImplementationPubSubDriver{
-					executionFlag: RequiresBlockingExecution,
+					executionFlag: BlockingExecution,
 				},
 				scheduler: newScheduler(),
 			}
@@ -797,8 +867,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:              BlockingExecution,
 				publishMessageCallbackFunc: onPublishMessage,
 			})
 
@@ -828,8 +898,8 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return onPublishMessageError
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:              BlockingExecution,
 				publishMessageCallbackFunc: onPublishMessage,
 			})
 
@@ -862,9 +932,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 					return nil, nil
 				}
 
-				ps, err := NewPubSubFromDriver(observableTestDriver{
-					executionFlag:                     RequiresBlockingExecution,
-					receivePendingMessageCallbackFunc: onReceivePendingMessage,
+				ps, err := NewPubSubFromDriver(&observableTestDriver{
+					executionFlag:              BlockingExecution,
+					receiveMessageCallbackFunc: onReceivePendingMessage,
 				})
 
 				if err != nil {
@@ -894,9 +964,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return nil, onReceivePendingMessageError
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onReceivePendingMessage,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:              BlockingExecution,
+				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {
@@ -936,9 +1006,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return message, nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onRecievePendingMessage,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:              BlockingExecution,
+				receiveMessageCallbackFunc: onRecievePendingMessage,
 			})
 
 			if err != nil {
@@ -973,9 +1043,9 @@ func Test_PubSub_ListenSync(t *testing.T) {
 				return "test message", nil
 			}
 
-			ps, err := NewPubSubFromDriver(observableTestDriver{
-				executionFlag:                     RequiresBlockingExecution,
-				receivePendingMessageCallbackFunc: onReceivePendingMessage,
+			ps, err := NewPubSubFromDriver(&observableTestDriver{
+				executionFlag:              BlockingExecution,
+				receiveMessageCallbackFunc: onReceivePendingMessage,
 			})
 
 			if err != nil {

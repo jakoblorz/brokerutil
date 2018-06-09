@@ -4,11 +4,37 @@ import (
 	"errors"
 )
 
+var (
+
+	// ErrConcurrentDriverCast is the error thrown when a cast to a concurrent driver
+	// failed
+	ErrConcurrentDriverCast = errors.New("could not cast driver to concurrency driver")
+
+	// ErrBlockingDriverCast is the error thrown when a cast to a blocking driver
+	// failed
+	ErrBlockingDriverCast = errors.New("could not cast driver to blocking driver")
+
+	// ErrMissingExecutionFlag is the error thrown when the GetDriverFlags() function
+	// returned an array / slice missing a execution flag
+	ErrMissingExecutionFlag = errors.New("could not find execution flag")
+)
+
+type pubSuber interface {
+	SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier)
+	SubscribeSync(fn SubscriberFunc) error
+	Unsubscribe(identifier SubscriberIdentifier)
+	UnsubscribeAll()
+	Publish(msg interface{}) error
+	ListenAsync() chan error
+	ListenSync() error
+	Terminate() error
+}
+
 // PubSub is the common "gateway" to reach to interact with the message broker such
 // as Publish / Subscribe. Independently from the implementation of the driver, it
 // guarantees that the exposed functions will work as expected.
 type PubSub struct {
-	driver              PubSubDriverScaffold
+	driver              PubSubDriver
 	scheduler           scheduler
 	supportsConcurrency bool
 
@@ -20,28 +46,28 @@ type PubSub struct {
 //
 // Depending on the implementation of the driver (single- or multithreaded)
 // a different PubSub implementation will be chosen.
-func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
+func NewPubSubFromDriver(d PubSubDriver) (*PubSub, error) {
 
 	var supportsConcurrency bool
 
-	if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
-		_, ok := d.(ConcurrentPubSubDriverScaffold)
+	if containsFlag(d.GetDriverFlags(), ConcurrentExecution) {
+		_, ok := d.(ConcurrentPubSubDriver)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to concurrency supporting driver")
+			return nil, ErrConcurrentDriverCast
 		}
 
 		supportsConcurrency = true
-	} else if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
-		_, ok := d.(BlockingPubSubDriverScaffold)
+	} else if containsFlag(d.GetDriverFlags(), BlockingExecution) {
+		_, ok := d.(BlockingPubSubDriver)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to plain driver")
+			return nil, ErrBlockingDriverCast
 		}
 
 		supportsConcurrency = false
 	} else {
-		return nil, errors.New("could not create execution plan for given driver - flags do not reflect requirements")
+		return nil, ErrMissingExecutionFlag
 	}
 
 	return &PubSub{
@@ -53,6 +79,25 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 	}, nil
 }
 
+// NewPubSubFromDrivers creates a new PubSub from the provided drivers
+//
+// Only the first driver is used to publish messages, for further functionality
+// use DriverAwarePubSub
+func NewPubSubFromDrivers(drivers ...PubSubDriver) (*PubSub, error) {
+
+	driverOptions := syntheticDriverOptions{
+		UseSyntheticMessageWithSource: false,
+		UseSyntheticMessageWithTarget: false,
+	}
+
+	driverPtr, err := newSyntheticDriver(&driverOptions, drivers...)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPubSubFromDriver(driverPtr)
+}
+
 // SubscribeAsync creates a new callback function which is invoked
 // on any incomming messages.
 //
@@ -60,14 +105,14 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 // all occuring / returned errors of the SubscriberFunc. A nil error
 // indicates the auto-unsubscribe after the call of UnsubscribeAll().
 // Use the SubscriberIdentifier to Unsubscribe later.
-func (a PubSub) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (a *PubSub) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 	return a.scheduler.SubscribeAsync(fn)
 }
 
 // SubscribeSync creates a new callback function like SubscribeAsync().
 //
 // It will block until recieving error or nil in the error chan, then returns it.
-func (a PubSub) SubscribeSync(fn SubscriberFunc) error {
+func (a *PubSub) SubscribeSync(fn SubscriberFunc) error {
 	return a.scheduler.SubscribeSync(fn)
 }
 
@@ -76,7 +121,7 @@ func (a PubSub) SubscribeSync(fn SubscriberFunc) error {
 //
 // Use the SubscriberIdentifier created when calling SubscribeAsync(). It will
 // send a nil error in the callback function's error chan.
-func (a PubSub) Unsubscribe(identifier SubscriberIdentifier) {
+func (a *PubSub) Unsubscribe(identifier SubscriberIdentifier) {
 	a.scheduler.Unsubscribe(identifier)
 }
 
@@ -84,19 +129,19 @@ func (a PubSub) Unsubscribe(identifier SubscriberIdentifier) {
 // loop.
 //
 // It will send a nil error in the callback's function's error chans.
-func (a PubSub) UnsubscribeAll() {
+func (a *PubSub) UnsubscribeAll() {
 	a.scheduler.UnsubscribeAll()
 }
 
 // Publish sends a message to the message broker.
-func (a PubSub) Publish(msg interface{}) error {
+func (a *PubSub) Publish(msg interface{}) error {
 	a.backlog <- msg
 	return nil
 }
 
 // ListenAsync starts the relay goroutine which uses the provided driver
 // to communicate with the message broker.
-func (a PubSub) ListenAsync() chan error {
+func (a *PubSub) ListenAsync() chan error {
 
 	errCh := make(chan error, 1)
 
@@ -109,7 +154,7 @@ func (a PubSub) ListenAsync() chan error {
 
 // ListenSync starts relay loops which use the provided driver to
 // communicate with the message broker.
-func (a PubSub) ListenSync() error {
+func (a *PubSub) ListenSync() error {
 
 	defer a.scheduler.UnsubscribeAll()
 
@@ -125,10 +170,10 @@ func (a PubSub) ListenSync() error {
 	//
 	if a.supportsConcurrency {
 
-		d, ok := a.driver.(ConcurrentPubSubDriverScaffold)
+		d, ok := a.driver.(ConcurrentPubSubDriver)
 
 		if !ok {
-			return errors.New("driver does not support concurrency, could not cast to correct interface")
+			return ErrConcurrentDriverCast
 		}
 
 		tx, err := d.GetMessageWriterChannel()
@@ -171,10 +216,10 @@ func (a PubSub) ListenSync() error {
 	// such as recieving and writing from different goroutines
 	//
 
-	d, ok := a.driver.(BlockingPubSubDriverScaffold)
+	d, ok := a.driver.(BlockingPubSubDriver)
 
 	if !ok {
-		return errors.New("driver does support concurrency but not with the pub-sub implementation, could not cast to correct interface")
+		return ErrBlockingDriverCast
 	}
 
 	for {
@@ -205,7 +250,7 @@ func (a PubSub) ListenSync() error {
 // be released.
 //
 // Subscribers will be unsubscribed was well.
-func (a PubSub) Terminate() error {
+func (a *PubSub) Terminate() error {
 
 	// send single termination signal for
 	// blocking driver
