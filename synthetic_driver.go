@@ -15,7 +15,7 @@ var (
 
 type metaDriverWrapper struct {
 	executionFlag Flag
-	driver        PubSubDriverScaffold
+	driver        PubSubDriver
 	out           chan interface{}
 }
 
@@ -25,12 +25,12 @@ type syntheticDriverOptions struct {
 }
 
 type syntheticMessageWithSource struct {
-	source  PubSubDriverScaffold
+	source  PubSubDriver
 	message interface{}
 }
 
 type syntheticMessageWithTarget struct {
-	target  PubSubDriverScaffold
+	target  PubSubDriver
 	message interface{}
 }
 
@@ -50,22 +50,22 @@ type syntheticDriver struct {
 // into one to be used as PubSub driver.
 //
 // The first driver is used to publish messages
-func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriverScaffold) (*syntheticDriver, error) {
+func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver) (*syntheticDriver, error) {
 
 	// set executionFlag, check all drivers on compliance
 	var metaDriverSlice = make([]metaDriverWrapper, 0)
 	for _, d := range drivers {
 
-		if containsFlag(d.GetDriverFlags(), RequiresBlockingExecution) {
+		if containsFlag(d.GetDriverFlags(), BlockingExecution) {
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
-				executionFlag: RequiresBlockingExecution,
+				executionFlag: BlockingExecution,
 				driver:        d,
 				out:           make(chan interface{}, 1),
 			})
 
-		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
+		} else if containsFlag(d.GetDriverFlags(), ConcurrentExecution) {
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
-				executionFlag: RequiresConcurrentExecution,
+				executionFlag: ConcurrentExecution,
 				driver:        d,
 				out:           make(chan interface{}, 1),
 			})
@@ -93,7 +93,7 @@ func (p *syntheticDriver) getOptions() *syntheticDriverOptions {
 	return p.options
 }
 
-func (p *syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold) interface{} {
+func (p *syntheticDriver) encodeMessage(msg interface{}, d PubSubDriver) interface{} {
 
 	if p.getOptions().UseSyntheticMessageWithSource {
 		return syntheticMessageWithSource{
@@ -105,7 +105,7 @@ func (p *syntheticDriver) encodeMessage(msg interface{}, d PubSubDriverScaffold)
 	return msg
 }
 
-func (p *syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriverScaffold) {
+func (p *syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDriver) {
 
 	if !p.getOptions().UseSyntheticMessageWithTarget {
 		return msg, nil
@@ -121,7 +121,7 @@ func (p *syntheticDriver) decodeMessage(msg interface{}) (interface{}, PubSubDri
 
 // GetDriverFlags returns the drivers flags to signal the type of execution
 func (p *syntheticDriver) GetDriverFlags() []Flag {
-	return []Flag{RequiresConcurrentExecution}
+	return []Flag{ConcurrentExecution}
 }
 
 // OpenStream opens each drivers streams and the relays those streams
@@ -136,9 +136,9 @@ func (p *syntheticDriver) OpenStream() error {
 
 		var s = &sync.WaitGroup{}
 
-		if d.executionFlag == RequiresBlockingExecution {
+		if d.executionFlag == BlockingExecution {
 
-			driver, ok := d.driver.(BlockingPubSubDriverScaffold)
+			driver, ok := d.driver.(BlockingPubSubDriver)
 			if !ok {
 				return fmt.Errorf("cannot parse driver %v to BlockingPubSubDriverScaffold", d)
 			}
@@ -171,9 +171,9 @@ func (p *syntheticDriver) OpenStream() error {
 
 			}()
 
-		} else if d.executionFlag == RequiresConcurrentExecution {
+		} else if d.executionFlag == ConcurrentExecution {
 
-			driver, ok := d.driver.(ConcurrentPubSubDriverScaffold)
+			driver, ok := d.driver.(ConcurrentPubSubDriver)
 			if !ok {
 				return fmt.Errorf("cannot parse driver %v to ConcurrentPubSubDriverScaffold", d)
 			}
@@ -254,7 +254,7 @@ func (p *syntheticDriver) CloseStream() error {
 
 		p.sigTerm <- 1
 
-		if d.executionFlag == RequiresConcurrentExecution {
+		if d.executionFlag == ConcurrentExecution {
 			p.sigTerm <- 1
 		}
 

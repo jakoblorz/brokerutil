@@ -12,7 +12,7 @@ func Test_newSyntheticDriver(t *testing.T) {
 
 	t.Run("should return new syntheticDriver with blocking driver without errors", func(t *testing.T) {
 
-		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: RequiresBlockingExecution})
+		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: BlockingExecution})
 		if err != nil {
 			t.Errorf("newSyntheticDriver() error = %v", err)
 		}
@@ -20,7 +20,7 @@ func Test_newSyntheticDriver(t *testing.T) {
 
 	t.Run("should return new syntheticDriver with concurrent driver without errors", func(t *testing.T) {
 
-		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: RequiresConcurrentExecution})
+		_, err := newSyntheticDriver(nil, &observableTestDriver{executionFlag: ConcurrentExecution})
 		if err != nil {
 			t.Errorf("newSyntheticDriver() error = %v", err)
 		}
@@ -177,12 +177,12 @@ func Test_syntheticDriver_decodeMessage(t *testing.T) {
 
 func Test_syntheticDriver_GetDriverFlags(t *testing.T) {
 
-	t.Run("should return RequiresConcurrentExecution flag", func(t *testing.T) {
+	t.Run("should return ConcurrentExecution flag", func(t *testing.T) {
 
 		td := syntheticDriver{}
 
-		if !containsFlag(td.GetDriverFlags(), RequiresConcurrentExecution) {
-			t.Errorf("syntheticDriver.GetDriverFlags() did not return RequiresConcurrentExecution flag")
+		if !containsFlag(td.GetDriverFlags(), ConcurrentExecution) {
+			t.Errorf("syntheticDriver.GetDriverFlags() did not return ConcurrentExecution flag")
 		}
 	})
 }
@@ -198,12 +198,12 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 		}
 
 		od1 := observableTestDriver{
-			executionFlag:          RequiresConcurrentExecution,
+			executionFlag:          ConcurrentExecution,
 			openStreamCallbackFunc: onOpenStream,
 		}
 
 		od2 := observableTestDriver{
-			executionFlag:          RequiresConcurrentExecution,
+			executionFlag:          ConcurrentExecution,
 			openStreamCallbackFunc: onOpenStream,
 		}
 
@@ -229,7 +229,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 		}
 
 		od := observableTestDriver{
-			executionFlag:          RequiresConcurrentExecution,
+			executionFlag:          ConcurrentExecution,
 			openStreamCallbackFunc: onOpenStream,
 		}
 
@@ -248,7 +248,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 	t.Run("should return error when failing to cast concurrent driver", func(t *testing.T) {
 
 		md := missingImplementationPubSubDriver{
-			executionFlag: RequiresConcurrentExecution,
+			executionFlag: ConcurrentExecution,
 		}
 
 		d, err := newSyntheticDriver(nil, md)
@@ -266,7 +266,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 	t.Run("should return error when failing to cast blocking driver", func(t *testing.T) {
 
 		md := missingImplementationPubSubDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
 		d, err := newSyntheticDriver(nil, md)
@@ -291,7 +291,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			}
 
@@ -322,7 +322,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageReaderChannelCallbackFunc: onGetMessageReaderChannel,
 			}
 
@@ -359,7 +359,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			}
 
@@ -390,12 +390,12 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od1 := observableTestDriver{
-				executionFlag:                       RequiresConcurrentExecution,
+				executionFlag:                       ConcurrentExecution,
 				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
 			}
 
 			od2 := observableTestDriver{
-				executionFlag: RequiresConcurrentExecution,
+				executionFlag: ConcurrentExecution,
 			}
 
 			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithTarget: true}, &od1, &od2)
@@ -433,7 +433,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceiveMessage,
 			}
 
@@ -461,7 +461,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceiveMessage,
 			}
 
@@ -509,7 +509,7 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od := observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceiveMessage,
 				publishMessageCallbackFunc: onPublishMessage,
 			}
@@ -561,13 +561,13 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 			}
 
 			od1 := observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceiveMessage,
 				publishMessageCallbackFunc: onPublishMessage,
 			}
 
 			od2 := observableTestDriver{
-				executionFlag:              RequiresBlockingExecution,
+				executionFlag:              BlockingExecution,
 				receiveMessageCallbackFunc: onReceiveMessage,
 				publishMessageCallbackFunc: onPublishMessageWrongDriver,
 			}

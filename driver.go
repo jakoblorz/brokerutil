@@ -6,20 +6,20 @@ type Flag int
 
 const (
 
-	// RequiresConcurrentExecution is the Type value used to
+	// ConcurrentExecution is the Type value used to
 	// indicate that the pub sub driver supports concurrent
 	// use
-	RequiresConcurrentExecution Flag = iota
+	ConcurrentExecution Flag = iota
 
-	// RequiresBlockingExecution is the Type value used to
+	// BlockingExecution is the Type value used to
 	// indicate that the pub sub driver does not support
 	// concurrent use
-	RequiresBlockingExecution Flag = iota
+	BlockingExecution Flag = iota
 )
 
-// PubSubDriverScaffold is the simplest pub sub driver
+// PubSubDriver is the simplest pub sub driver
 // requirement to be used initially
-type PubSubDriverScaffold interface {
+type PubSubDriver interface {
 
 	// GetDriverFlags should reflect the ability of the driver to
 	// be used in concurrent environments such as multiple
@@ -35,15 +35,15 @@ type PubSubDriverScaffold interface {
 	OpenStream() error
 }
 
-// BlockingPubSubDriverScaffold is the implementation
+// BlockingPubSubDriver is the implementation
 // contract for a pub sub driver which does not support concurrent
 // use
 //
 // NotifyMessageRecieve() and NotifyMessageTest() can both be blocking,
 // but no message will be sent / published during that block to follow
 // the unsupported concurrent use restriction.
-type BlockingPubSubDriverScaffold interface {
-	PubSubDriverScaffold
+type BlockingPubSubDriver interface {
+	PubSubDriver
 
 	// ReceiveMessage is called by the driver consumer to
 	// recieve a message
@@ -56,11 +56,11 @@ type BlockingPubSubDriverScaffold interface {
 	PublishMessage(interface{}) error
 }
 
-// ConcurrentPubSubDriverScaffold is the implementation
+// ConcurrentPubSubDriver is the implementation
 // contract for a pub sub driver which does support concurrent
 // use.
-type ConcurrentPubSubDriverScaffold interface {
-	PubSubDriverScaffold
+type ConcurrentPubSubDriver interface {
+	PubSubDriver
 
 	// GetMessageWriterChannel is called by the driver consumer
 	// to get the writer channel of the driver.

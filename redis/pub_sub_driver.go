@@ -43,7 +43,7 @@ func NewRedisPubSubDriver(channels []string, opts *redis.Options) (*PubSubDriver
 
 // GetDriverFlags returns flags which indicate the capabilities
 func (p PubSubDriver) GetDriverFlags() []brokerutil.Flag {
-	return []brokerutil.Flag{brokerutil.RequiresConcurrentExecution}
+	return []brokerutil.Flag{brokerutil.ConcurrentExecution}
 }
 
 // OpenStream initializes the communication channels protocol + network

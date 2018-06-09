@@ -98,7 +98,7 @@ func TestNewDriverAwarePubSub(t *testing.T) {
 	t.Run("should not return any errors", func(t *testing.T) {
 
 		od := observableTestDriver{
-			executionFlag: RequiresBlockingExecution,
+			executionFlag: BlockingExecution,
 		}
 
 		_, err := NewDriverAwarePubSub(&od)
@@ -197,7 +197,7 @@ func TestDriverAwarePubSub_SubscribeAsyncWithSource(t *testing.T) {
 			},
 		}
 
-		d.SubscribeAsyncWithSource(func(interface{}, PubSubDriverScaffold) error { return nil })
+		d.SubscribeAsyncWithSource(func(interface{}, PubSubDriver) error { return nil })
 
 		if subscribeAsyncInvoked == false {
 			t.Error("DriverAwarePubSub.SubscribeAsyncWithSource() did not invoked SubscribeAsync on pub sub")
@@ -219,8 +219,8 @@ func TestDriverAwarePubSub_SubscribeAsyncWithSource(t *testing.T) {
 		}
 
 		var extractedMessage interface{}
-		var extractedDriver PubSubDriverScaffold
-		d.SubscribeAsyncWithSource(func(msg interface{}, driver PubSubDriverScaffold) error {
+		var extractedDriver PubSubDriver
+		d.SubscribeAsyncWithSource(func(msg interface{}, driver PubSubDriver) error {
 			extractedDriver = driver
 			extractedMessage = msg
 			return nil
@@ -349,7 +349,7 @@ func TestDriverAwarePubSub_SubscribeSyncWithSource(t *testing.T) {
 			},
 		}
 
-		d.SubscribeSyncWithSource(func(interface{}, PubSubDriverScaffold) error { return nil })
+		d.SubscribeSyncWithSource(func(interface{}, PubSubDriver) error { return nil })
 
 		if subscribeSyncInoked == false {
 			t.Error("DriverAwarePubSub.SubscribeSynWithSource() did not invoke SubscribeSync on pub sub")
@@ -372,8 +372,8 @@ func TestDriverAwarePubSub_SubscribeSyncWithSource(t *testing.T) {
 		}
 
 		var extractedMessage interface{}
-		var extractedDriver PubSubDriverScaffold
-		d.SubscribeSyncWithSource(func(msg interface{}, driver PubSubDriverScaffold) error {
+		var extractedDriver PubSubDriver
+		d.SubscribeSyncWithSource(func(msg interface{}, driver PubSubDriver) error {
 			extractedDriver = driver
 			extractedMessage = msg
 			return nil

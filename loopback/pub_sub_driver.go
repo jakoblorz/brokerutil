@@ -22,12 +22,12 @@ func NewLoopbackPubSubDriver(executionFlag brokerutil.Flag) (*PubSubDriver, erro
 
 // NewLoopbackBlockingPubSubDriver returns a new loopback driver as single thread driver
 func NewLoopbackBlockingPubSubDriver() (*PubSubDriver, error) {
-	return NewLoopbackPubSubDriver(brokerutil.RequiresBlockingExecution)
+	return NewLoopbackPubSubDriver(brokerutil.BlockingExecution)
 }
 
 // NewLoopbackConcurrentPubSubDriver returns a new loopback driver as multi thread driver
 func NewLoopbackConcurrentPubSubDriver() (*PubSubDriver, error) {
-	return NewLoopbackPubSubDriver(brokerutil.RequiresConcurrentExecution)
+	return NewLoopbackPubSubDriver(brokerutil.ConcurrentExecution)
 }
 
 // GetDriverFlags returns the driver type to indicate the
