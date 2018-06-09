@@ -162,7 +162,7 @@ func TestDriverAwarePubSub_SubscribeAsync(t *testing.T) {
 			})
 
 			if !reflect.DeepEqual(messagePayloadTestWrapped, extractedMessage) {
-				t.Errorf("DriverAwarePubSub.SubscribeAsync() did not extract wrapped message")
+				t.Error("DriverAwarePubSub.SubscribeAsync() did not extract wrapped message")
 			}
 		})
 
@@ -260,5 +260,159 @@ func TestDriverAwarePubSub_SubscribeAsyncWithSource(t *testing.T) {
 				t.Error("DriverAwarePubSub.SubscribeAsyncWithSource() did not extract plain message with nil driver")
 			}
 		})
+	})
+}
+
+func TestDriverAwarePubSub_SubscribeSync(t *testing.T) {
+
+	t.Run("should invoke SubscribeSync on pub sub", func(t *testing.T) {
+
+		var subscribeSyncInoked = false
+		var obSubscribeSync = func(fn SubscriberFunc) error {
+			subscribeSyncInoked = true
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				subscribeSyncCallbackFunc: obSubscribeSync,
+			},
+		}
+
+		d.SubscribeSync(func(interface{}) error { return nil })
+
+		if subscribeSyncInoked == false {
+			t.Error("DriverAwarePubSub.SubscribeSync() did not invoked SubscribeSync on pub sub")
+		}
+	})
+
+	t.Run("should invoked SubscribeSync with message extractor", func(t *testing.T) {
+
+		var subscribeSyncFn func(interface{}) error
+		var onSubscribeSync = func(fn SubscriberFunc) error {
+			subscribeSyncFn = fn
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				subscribeSyncCallbackFunc: onSubscribeSync,
+			},
+		}
+
+		var extractedMessage interface{}
+		d.SubscribeSync(func(msg interface{}) error {
+			extractedMessage = msg
+			return nil
+		})
+
+		t.Run("should extract wrapped message", func(t *testing.T) {
+
+			var messagePayloadTestWrapped = "test message test wrapped"
+
+			subscribeSyncFn(syntheticMessageWithSource{
+				message: messagePayloadTestWrapped,
+				source:  &observableTestDriver{},
+			})
+
+			if !reflect.DeepEqual(messagePayloadTestWrapped, extractedMessage) {
+				t.Error("DriverAwarePubSub.SubscribeSync() did not extract wrapped message")
+			}
+		})
+
+		t.Run("should extract plain message", func(t *testing.T) {
+
+			var messagePayloadTestPlain = "test message test plain"
+
+			subscribeSyncFn(messagePayloadTestPlain)
+
+			if !reflect.DeepEqual(messagePayloadTestPlain, extractedMessage) {
+				t.Error("DriverAwarePubSub.SubscribeSync() did not extract plain message")
+			}
+		})
+	})
+}
+
+func TestDriverAwarePubSub_SubscribeSyncWithSource(t *testing.T) {
+
+	t.Run("should invoke SubscribeSync on pub sub", func(t *testing.T) {
+
+		var subscribeSyncInoked = false
+		var obSubscribeSync = func(fn SubscriberFunc) error {
+			subscribeSyncInoked = true
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				subscribeSyncCallbackFunc: obSubscribeSync,
+			},
+		}
+
+		d.SubscribeSyncWithSource(func(interface{}, PubSubDriverScaffold) error { return nil })
+
+		if subscribeSyncInoked == false {
+			t.Error("DriverAwarePubSub.SubscribeSynWithSource() did not invoke SubscribeSync on pub sub")
+		}
+
+	})
+
+	t.Run("should invoked SubscribeSync with extractor function", func(t *testing.T) {
+
+		var subscribeSyncFn func(interface{}) error
+		var onSubscribeSync = func(fn SubscriberFunc) error {
+			subscribeSyncFn = fn
+			return nil
+		}
+
+		d := DriverAwarePubSub{
+			pubSub: &observableTestPubSub{
+				subscribeSyncCallbackFunc: onSubscribeSync,
+			},
+		}
+
+		var extractedMessage interface{}
+		var extractedDriver PubSubDriverScaffold
+		d.SubscribeSyncWithSource(func(msg interface{}, driver PubSubDriverScaffold) error {
+			extractedDriver = driver
+			extractedMessage = msg
+			return nil
+		})
+
+		t.Run("should extract wrapped message with driver", func(t *testing.T) {
+
+			var messagePayloadTestWrapped = "test message test wrapped"
+
+			driver := observableTestDriver{}
+
+			subscribeSyncFn(syntheticMessageWithSource{
+				message: messagePayloadTestWrapped,
+				source:  &driver,
+			})
+
+			if !reflect.DeepEqual(messagePayloadTestWrapped, extractedMessage) {
+				t.Error("DriverAwarePubSub.SubscribeSyncWithSource() did not extract wrapped message")
+			}
+
+			if !reflect.DeepEqual(&driver, extractedDriver) {
+				t.Error("DriverAwarePubSub.SubscribeSyncWithSource() did not extract wrapped message with driver")
+			}
+		})
+
+		t.Run("should extract plain message with nil driver", func(t *testing.T) {
+
+			var messagePayloadTestPlain = "test message test plain"
+
+			subscribeSyncFn(messagePayloadTestPlain)
+
+			if !reflect.DeepEqual(messagePayloadTestPlain, extractedMessage) {
+				t.Error("DriverAwarePubSub.SubscribeSyncWithSource() did not extract plain message")
+			}
+
+			if !reflect.DeepEqual(nil, extractedDriver) {
+				t.Error("DriverAwarePubSub.SubscribeSyncWithSource() did not extract plain message with nil driver")
+			}
+		})
+
 	})
 }
