@@ -18,19 +18,19 @@ func TestNewLoopbackPubSubDriver(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "should return PubSubDriver with RequiresBlockingExecution flag set",
+			name: "should return PubSubDriver with BlockingExecution flag set",
 			args: args{
-				executionFlag: brokerutil.RequiresBlockingExecution,
+				executionFlag: brokerutil.BlockingExecution,
 			},
-			want:    brokerutil.RequiresBlockingExecution,
+			want:    brokerutil.BlockingExecution,
 			wantErr: false,
 		},
 		{
-			name: "should return PubSubDriver with RequiresConcurrentExecution flag set",
+			name: "should return PubSubDriver with ConcurrentExecution flag set",
 			args: args{
-				executionFlag: brokerutil.RequiresConcurrentExecution,
+				executionFlag: brokerutil.ConcurrentExecution,
 			},
-			want:    brokerutil.RequiresConcurrentExecution,
+			want:    brokerutil.ConcurrentExecution,
 			wantErr: false,
 		},
 	}
@@ -50,28 +50,28 @@ func TestNewLoopbackPubSubDriver(t *testing.T) {
 
 func TestNewLoopbackBlockingPubSubDriver(t *testing.T) {
 
-	t.Run("should return PubSubDriver with RequiresBlockingExecution flag set", func(t *testing.T) {
+	t.Run("should return PubSubDriver with BlockingExecution flag set", func(t *testing.T) {
 		got, err := NewLoopbackBlockingPubSubDriver()
 		if err != nil {
 			t.Errorf("NewLoopbackBlockingPubSubDriver() error = %v ", err)
 		}
 
-		if !reflect.DeepEqual(got.executionFlag, brokerutil.RequiresBlockingExecution) {
-			t.Errorf("NewLoopbackBlockingPubSubDriver() = %v, want %v", got.executionFlag, brokerutil.RequiresBlockingExecution)
+		if !reflect.DeepEqual(got.executionFlag, brokerutil.BlockingExecution) {
+			t.Errorf("NewLoopbackBlockingPubSubDriver() = %v, want %v", got.executionFlag, brokerutil.BlockingExecution)
 		}
 	})
 }
 
 func TestNewLoopbackConcurrentPubSubDriver(t *testing.T) {
 
-	t.Run("should return PubSubDriver with RequiresConcurrentExecution flag set", func(t *testing.T) {
+	t.Run("should return PubSubDriver with ConcurrentExecution flag set", func(t *testing.T) {
 		got, err := NewLoopbackConcurrentPubSubDriver()
 		if err != nil {
 			t.Errorf("NewLoopbackConcurrentPubSubDriver() error = %v ", err)
 		}
 
-		if !reflect.DeepEqual(got.executionFlag, brokerutil.RequiresConcurrentExecution) {
-			t.Errorf("NewLoopbackConcurrentPubSubDriver() = %v, want %v", got.executionFlag, brokerutil.RequiresConcurrentExecution)
+		if !reflect.DeepEqual(got.executionFlag, brokerutil.ConcurrentExecution) {
+			t.Errorf("NewLoopbackConcurrentPubSubDriver() = %v, want %v", got.executionFlag, brokerutil.ConcurrentExecution)
 		}
 	})
 }
@@ -88,17 +88,17 @@ func TestPubSubDriver_GetDriverFlags(t *testing.T) {
 		t.Error(err)
 	}
 
-	t.Run("should return flags with RequiresConcurrentExecution flag", func(t *testing.T) {
+	t.Run("should return flags with ConcurrentExecution flag", func(t *testing.T) {
 
-		if !reflect.DeepEqual([]brokerutil.Flag{brokerutil.RequiresConcurrentExecution}, concurrent.GetDriverFlags()) {
-			t.Error("PubSubDriver.GetDriverFlags() did not return flags with RequiresConcurrentExecution flag")
+		if !reflect.DeepEqual([]brokerutil.Flag{brokerutil.ConcurrentExecution}, concurrent.GetDriverFlags()) {
+			t.Error("PubSubDriver.GetDriverFlags() did not return flags with ConcurrentExecution flag")
 		}
 	})
 
-	t.Run("should return flags with RequiresBlockingExecution flag", func(t *testing.T) {
+	t.Run("should return flags with BlockingExecution flag", func(t *testing.T) {
 
-		if !reflect.DeepEqual([]brokerutil.Flag{brokerutil.RequiresBlockingExecution}, blocking.GetDriverFlags()) {
-			t.Error("PubSubDriver.GetDriverFlags() did not return flags with RequiresBlockingExecution flag")
+		if !reflect.DeepEqual([]brokerutil.Flag{brokerutil.BlockingExecution}, blocking.GetDriverFlags()) {
+			t.Error("PubSubDriver.GetDriverFlags() did not return flags with BlockingExecution flag")
 		}
 	})
 }
@@ -110,7 +110,7 @@ func TestPubSubDriver_OpenStream(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.PubSubDriverScaffold = blocking
+	var driver brokerutil.PubSubDriver = blocking
 
 	defer driver.CloseStream()
 
@@ -131,7 +131,7 @@ func TestPubSubDriver_CloseStream(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.PubSubDriverScaffold = blocking
+	var driver brokerutil.PubSubDriver = blocking
 
 	err = driver.OpenStream()
 	if err != nil {
@@ -154,7 +154,7 @@ func TestPubSubDriver_ReceiveMessage(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.BlockingPubSubDriverScaffold = blocking
+	var driver brokerutil.BlockingPubSubDriver = blocking
 
 	t.Run("should receive message from channel", func(t *testing.T) {
 
@@ -180,7 +180,7 @@ func TestPubSubDriver_PublishMessage(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.BlockingPubSubDriverScaffold = blocking
+	var driver brokerutil.BlockingPubSubDriver = blocking
 
 	t.Run("should publish message to channel", func(t *testing.T) {
 
@@ -205,7 +205,7 @@ func TestPubSubDriver_GetMessageWriterChannel(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.ConcurrentPubSubDriverScaffold = concurrent
+	var driver brokerutil.ConcurrentPubSubDriver = concurrent
 
 	t.Run("should return channel with publishing capabilities", func(t *testing.T) {
 
@@ -232,7 +232,7 @@ func TestPubSubDriver_GetMessageReaderChannel(t *testing.T) {
 		t.Error(err)
 	}
 
-	var driver brokerutil.ConcurrentPubSubDriverScaffold = concurrent
+	var driver brokerutil.ConcurrentPubSubDriver = concurrent
 
 	t.Run("should return channel with receiving capabilities", func(t *testing.T) {
 
