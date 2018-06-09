@@ -17,7 +17,7 @@ var (
 type metaDriverWrapper struct {
 	executionFlag Flag
 	driver        PubSubDriverScaffold
-	transmitChan  chan interface{}
+	out           chan interface{}
 }
 
 type syntheticDriverOptions struct {
@@ -39,11 +39,12 @@ type syntheticMessageWithTarget struct {
 // pub sub driver which merges other pub sub drivers of the same type
 // into one
 type syntheticDriver struct {
-	options      *syntheticDriverOptions
-	drivers      []metaDriverWrapper
-	transmitChan chan interface{}
-	receiveChan  chan interface{}
-	signalChan   chan int
+	options *syntheticDriverOptions
+	drivers []metaDriverWrapper
+	out     chan interface{}
+	in      chan interface{}
+	sigTerm chan int
+	sigMsg  chan string
 }
 
 // newSyntheticDriver creates a new driver merger which merges multiple drivers
@@ -60,14 +61,14 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresBlockingExecution,
 				driver:        d,
-				transmitChan:  make(chan interface{}, 1),
+				out:           make(chan interface{}, 1),
 			})
 
 		} else if containsFlag(d.GetDriverFlags(), RequiresConcurrentExecution) {
 			metaDriverSlice = append(metaDriverSlice, metaDriverWrapper{
 				executionFlag: RequiresConcurrentExecution,
 				driver:        d,
-				transmitChan:  make(chan interface{}, 1),
+				out:           make(chan interface{}, 1),
 			})
 		} else {
 			return nil, fmt.Errorf("driver %v does not return execution flag when calling GetDriverFlags()", d)
@@ -75,11 +76,12 @@ func newSyntheticDriver(options *syntheticDriverOptions, drivers ...PubSubDriver
 	}
 
 	return &syntheticDriver{
-		drivers:      metaDriverSlice,
-		options:      options,
-		transmitChan: make(chan interface{}, 1),
-		receiveChan:  make(chan interface{}, 1),
-		signalChan:   make(chan int),
+		drivers: metaDriverSlice,
+		options: options,
+		out:     make(chan interface{}, 1),
+		in:      make(chan interface{}, 1),
+		sigTerm: make(chan int, 1),
+		sigMsg:  make(chan string, 1),
 	}, nil
 
 }
@@ -133,7 +135,7 @@ func (p *syntheticDriver) OpenStream() error {
 			return err
 		}
 
-		var bootSync = &sync.WaitGroup{}
+		var s = &sync.WaitGroup{}
 
 		if d.executionFlag == RequiresBlockingExecution {
 
@@ -142,21 +144,21 @@ func (p *syntheticDriver) OpenStream() error {
 				return fmt.Errorf("cannot parse driver %v to BlockingPubSubDriverScaffold", d)
 			}
 
-			bootSync.Add(1)
+			s.Add(1)
 
 			go func() {
 
-				transmitChan := d.transmitChan
+				receiveFromApplication := d.out
 
-				bootSync.Done()
+				s.Done()
 
 				for {
 					select {
 
-					case <-p.signalChan:
+					case <-p.sigTerm:
 						return
 
-					case msg := <-transmitChan:
+					case msg := <-receiveFromApplication:
 						err := driver.PublishMessage(msg)
 						if err != nil {
 							log.Printf("%v", err)
@@ -169,7 +171,7 @@ func (p *syntheticDriver) OpenStream() error {
 						}
 
 						if msg != nil {
-							p.receiveChan <- p.encodeMessage(msg, d.driver)
+							p.in <- p.encodeMessage(msg, d.driver)
 						}
 					}
 				}
@@ -183,42 +185,42 @@ func (p *syntheticDriver) OpenStream() error {
 				return fmt.Errorf("cannot parse driver %v to ConcurrentPubSubDriverScaffold", d)
 			}
 
-			bootSync.Add(1)
+			s.Add(1)
 
 			go func() {
 
-				driverTransmitChan, _ := driver.GetMessageWriterChannel()
+				receiveFromApplication := d.out
 
-				transmitChan := d.transmitChan
+				s.Done()
 
-				bootSync.Done()
+				transmitToDriver, _ := driver.GetMessageWriterChannel()
 
 				for {
 					select {
-					case <-p.signalChan:
+					case <-p.sigTerm:
 						return
-					case msg := <-transmitChan:
-						driverTransmitChan <- msg
+					case msg := <-receiveFromApplication:
+						transmitToDriver <- msg
 					}
 				}
 			}()
 
 			go func() {
 
-				driverReceiveChan, _ := driver.GetMessageReaderChannel()
+				receiveFromDriver, _ := driver.GetMessageReaderChannel()
 
 				for {
 					select {
-					case <-p.signalChan:
+					case <-p.sigTerm:
 						return
-					case msg := <-driverReceiveChan:
-						p.receiveChan <- p.encodeMessage(msg, d.driver)
+					case msg := <-receiveFromDriver:
+						p.in <- p.encodeMessage(msg, d.driver)
 					}
 				}
 			}()
 		}
 
-		bootSync.Wait()
+		s.Wait()
 	}
 
 	go func() {
@@ -227,23 +229,22 @@ func (p *syntheticDriver) OpenStream() error {
 
 		for {
 			select {
-			case <-p.signalChan:
+			case <-p.sigTerm:
 				return
-			case msg := <-p.transmitChan:
+			case msg := <-p.out:
 				message, driverPtr := p.decodeMessage(msg)
 				if driverPtr == nil {
 					driverPtr = first
 				}
 
+			DriverLoop:
 				for _, d := range p.drivers {
 
 					if reflect.DeepEqual(driverPtr, d.driver) {
-						d.transmitChan <- message
-						return
+						d.out <- message
+						break DriverLoop
 					}
 				}
-
-				log.Printf("could not deliver message to driver: driver %v not found", driverPtr)
 			}
 		}
 
@@ -258,17 +259,17 @@ func (p *syntheticDriver) CloseStream() error {
 
 	for _, d := range p.drivers {
 
-		p.signalChan <- 1
+		p.sigTerm <- 1
 
 		if d.executionFlag == RequiresConcurrentExecution {
-			p.signalChan <- 1
+			p.sigTerm <- 1
 		}
 
 		defer d.driver.CloseStream()
 	}
 
 	// signal for send relay operation
-	p.signalChan <- 1
+	p.sigTerm <- 1
 
 	return nil
 }
@@ -276,11 +277,11 @@ func (p *syntheticDriver) CloseStream() error {
 // GetMessageWriterChannel returns the channel to write message to be
 // published to
 func (p *syntheticDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
-	return p.transmitChan, nil
+	return p.out, nil
 }
 
 // GetMessageReaderChannel returns the channel to receive received messages
 // from
 func (p *syntheticDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
-	return p.receiveChan, nil
+	return p.in, nil
 }

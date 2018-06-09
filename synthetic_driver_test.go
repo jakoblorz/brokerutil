@@ -349,36 +349,77 @@ func Test_syntheticDriver_OpenStream(t *testing.T) {
 
 		})
 
-		// t.Run("should relay published messages unencoded to driver", func(t *testing.T) {
+		t.Run("should relay published messages unencoded to driver", func(t *testing.T) {
 
-		// 	var messageWriterChannel = make(chan interface{}, 1)
-		// 	var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
-		// 		return messageWriterChannel, nil
-		// 	}
+			var messageWriterChannel = make(chan interface{}, 1)
+			var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+				return messageWriterChannel, nil
+			}
 
-		// 	od := observableTestDriver{
-		// 		executionFlag:                       RequiresConcurrentExecution,
-		// 		getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
-		// 	}
+			od := observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+			}
 
-		// 	d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithSource: false}, &od)
-		// 	if err != nil {
-		// 		t.Errorf("%v", err)
-		// 	}
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithTarget: false}, &od)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
 
-		// 	d.OpenStream()
+			d.OpenStream()
 
-		// 	defer d.CloseStream()
+			defer d.CloseStream()
 
-		// 	var message = "test message"
-		// 	var messageSenderChannel, _ = d.GetMessageWriterChannel()
+			var message = "test message"
+			var messageSenderChannel, _ = d.GetMessageWriterChannel()
 
-		// 	messageSenderChannel <- message
+			messageSenderChannel <- message
 
-		// 	if !reflect.DeepEqual(message, <-messageWriterChannel) {
-		// 		t.Errorf("syntheticDriver.OpenStream() did not relay published messages unencoded to driver")
-		// 	}
-		// })
+			if receivedMessage := <-messageWriterChannel; !reflect.DeepEqual(message, receivedMessage) {
+				t.Errorf("syntheticDriver.OpenStream() did not relay published messages unencoded to driver")
+			}
+		})
+
+		t.Run("should relay published message unwrapped encoded to correct driver", func(t *testing.T) {
+
+			var messageWriterChannel = make(chan interface{}, 1)
+			var onGetMessageWriterChannel = func() (chan<- interface{}, error) {
+				return messageWriterChannel, nil
+			}
+
+			od1 := observableTestDriver{
+				executionFlag:                       RequiresConcurrentExecution,
+				getMessageWriterChannelCallbackFunc: onGetMessageWriterChannel,
+			}
+
+			od2 := observableTestDriver{
+				executionFlag: RequiresConcurrentExecution,
+			}
+
+			d, err := newSyntheticDriver(&syntheticDriverOptions{UseSyntheticMessageWithTarget: true}, &od1, &od2)
+			if err != nil {
+				t.Errorf("%v", err)
+			}
+
+			d.OpenStream()
+
+			defer d.CloseStream()
+
+			var messagePayload = "test message"
+			var message = syntheticMessageWithTarget{
+				message: messagePayload,
+				target:  &od1,
+			}
+
+			var messageSenderChannl, _ = d.GetMessageWriterChannel()
+
+			messageSenderChannl <- message
+
+			if receivedMessage := <-messageWriterChannel; !reflect.DeepEqual(messagePayload, receivedMessage) {
+				t.Errorf("syntheticDriver.OpenStream() did not relay published message unwrapped encoded to correct driver")
+			}
+		})
+
 	})
 }
 
@@ -389,7 +430,7 @@ func Test_syntheticDriver_GetMessageWriterChannel(t *testing.T) {
 		baseWriterChan := make(chan interface{})
 
 		td := syntheticDriver{
-			transmitChan: baseWriterChan,
+			out: baseWriterChan,
 		}
 
 		_, err := td.GetMessageWriterChannel()
@@ -403,7 +444,7 @@ func Test_syntheticDriver_GetMessageWriterChannel(t *testing.T) {
 		baseWriterChan := make(chan interface{})
 
 		td := syntheticDriver{
-			transmitChan: baseWriterChan,
+			out: baseWriterChan,
 		}
 
 		channel, _ := td.GetMessageWriterChannel()
@@ -420,7 +461,7 @@ func Test_syntheticDriver_GetMessageReaderChannel(t *testing.T) {
 		baseReaderChan := make(chan interface{})
 
 		td := syntheticDriver{
-			receiveChan: baseReaderChan,
+			in: baseReaderChan,
 		}
 
 		_, err := td.GetMessageReaderChannel()
@@ -434,7 +475,7 @@ func Test_syntheticDriver_GetMessageReaderChannel(t *testing.T) {
 		baseReaderChan := make(chan interface{})
 
 		td := syntheticDriver{
-			receiveChan: baseReaderChan,
+			in: baseReaderChan,
 		}
 
 		channel, _ := td.GetMessageReaderChannel()

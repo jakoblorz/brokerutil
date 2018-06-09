@@ -130,6 +130,43 @@ func (o observableTestScheduler) UnsubscribeAll() {
 	}
 }
 
+type observableTestLoopbackDriver struct {
+	channel chan interface{}
+
+	getMessageWriterChannelFunc func()
+	getMessageReaderChannelFunc func()
+}
+
+func (d *observableTestLoopbackDriver) GetDriverFlags() []Flag {
+	return []Flag{RequiresConcurrentExecution}
+}
+
+func (d *observableTestLoopbackDriver) CloseStream() error {
+	return nil
+}
+
+func (d *observableTestLoopbackDriver) OpenStream() error {
+	return nil
+}
+
+func (d *observableTestLoopbackDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+
+	if d.getMessageWriterChannelFunc != nil {
+		d.getMessageWriterChannelFunc()
+	}
+
+	return d.channel, nil
+}
+
+func (d *observableTestLoopbackDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+
+	if d.getMessageReaderChannelFunc != nil {
+		d.getMessageReaderChannelFunc()
+	}
+
+	return d.channel, nil
+}
+
 type missingImplementationPubSubDriver struct {
 	executionFlag Flag
 }

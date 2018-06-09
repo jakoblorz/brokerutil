@@ -32,27 +32,27 @@ func NewLoopbackConcurrentPubSubDriver() (*PubSubDriver, error) {
 
 // GetDriverFlags returns the driver type to indicate the
 // ability to be used in concurrent environments
-func (d PubSubDriver) GetDriverFlags() []brokerutil.Flag {
+func (d *PubSubDriver) GetDriverFlags() []brokerutil.Flag {
 	return []brokerutil.Flag{d.executionFlag}
 }
 
 // OpenStream can be called to open the stream
-func (d PubSubDriver) OpenStream() error {
+func (d *PubSubDriver) OpenStream() error {
 	return nil
 }
 
 // CloseStream can be called to close the stream
-func (d PubSubDriver) CloseStream() error {
+func (d *PubSubDriver) CloseStream() error {
 	return nil
 }
 
 // ReceiveMessage can be called to recieve a message
-func (d PubSubDriver) ReceiveMessage() (interface{}, error) {
+func (d *PubSubDriver) ReceiveMessage() (interface{}, error) {
 	return <-d.channel, nil
 }
 
 // PublishMessage can be called to publish a message
-func (d PubSubDriver) PublishMessage(msg interface{}) error {
+func (d *PubSubDriver) PublishMessage(msg interface{}) error {
 
 	d.channel <- msg
 	return nil
@@ -60,12 +60,12 @@ func (d PubSubDriver) PublishMessage(msg interface{}) error {
 
 // GetMessageWriterChannel returns the writer (publish) channel
 // of the driver
-func (d PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
+func (d *PubSubDriver) GetMessageWriterChannel() (chan<- interface{}, error) {
 	return d.channel, nil
 }
 
 // GetMessageReaderChannel returns the reader (subscribe) channel
 // of the driver
-func (d PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
+func (d *PubSubDriver) GetMessageReaderChannel() (<-chan interface{}, error) {
 	return d.channel, nil
 }
