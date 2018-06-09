@@ -279,6 +279,16 @@ func TestNewPubSubFromDrivers(t *testing.T) {
 		}
 	})
 
+	t.Run("should return error from synthetic driver constructor", func(t *testing.T) {
+
+		md := missingExecutionFlagPubSubDriver{}
+
+		_, err := NewPubSubFromDrivers(&md)
+		if err == nil {
+			t.Errorf("NewPubSubFromDrivers() error = %v", err)
+		}
+	})
+
 	t.Run("should return pub sub", func(t *testing.T) {
 
 		od := observableTestDriver{}
