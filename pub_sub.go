@@ -4,6 +4,17 @@ import (
 	"errors"
 )
 
+type pubSuber interface {
+	SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier)
+	SubscribeSync(fn SubscriberFunc) error
+	Unsubscribe(identifier SubscriberIdentifier)
+	UnsubscribeAll()
+	Publish(msg interface{}) error
+	ListenAsync() chan error
+	ListenSync() error
+	Terminate() error
+}
+
 // PubSub is the common "gateway" to reach to interact with the message broker such
 // as Publish / Subscribe. Independently from the implementation of the driver, it
 // guarantees that the exposed functions will work as expected.
@@ -36,7 +47,7 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 		_, ok := d.(BlockingPubSubDriverScaffold)
 
 		if !ok {
-			return nil, errors.New("could not cast driver to plain driver")
+			return nil, errors.New("could not cast driver to blocking driver")
 		}
 
 		supportsConcurrency = false
@@ -53,6 +64,25 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 	}, nil
 }
 
+// NewPubSubFromDrivers creates a new PubSub from the provided drivers
+//
+// Only the first driver is used to publish messages, for further functionality
+// use DriverAwarePubSub
+func NewPubSubFromDrivers(drivers ...PubSubDriverScaffold) (*PubSub, error) {
+
+	driverOptions := syntheticDriverOptions{
+		UseSyntheticMessageWithSource: false,
+		UseSyntheticMessageWithTarget: false,
+	}
+
+	driverPtr, err := newSyntheticDriver(&driverOptions, drivers...)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewPubSubFromDriver(driverPtr)
+}
+
 // SubscribeAsync creates a new callback function which is invoked
 // on any incomming messages.
 //
@@ -60,14 +90,14 @@ func NewPubSubFromDriver(d PubSubDriverScaffold) (*PubSub, error) {
 // all occuring / returned errors of the SubscriberFunc. A nil error
 // indicates the auto-unsubscribe after the call of UnsubscribeAll().
 // Use the SubscriberIdentifier to Unsubscribe later.
-func (a PubSub) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
+func (a *PubSub) SubscribeAsync(fn SubscriberFunc) (chan error, SubscriberIdentifier) {
 	return a.scheduler.SubscribeAsync(fn)
 }
 
 // SubscribeSync creates a new callback function like SubscribeAsync().
 //
 // It will block until recieving error or nil in the error chan, then returns it.
-func (a PubSub) SubscribeSync(fn SubscriberFunc) error {
+func (a *PubSub) SubscribeSync(fn SubscriberFunc) error {
 	return a.scheduler.SubscribeSync(fn)
 }
 
@@ -76,7 +106,7 @@ func (a PubSub) SubscribeSync(fn SubscriberFunc) error {
 //
 // Use the SubscriberIdentifier created when calling SubscribeAsync(). It will
 // send a nil error in the callback function's error chan.
-func (a PubSub) Unsubscribe(identifier SubscriberIdentifier) {
+func (a *PubSub) Unsubscribe(identifier SubscriberIdentifier) {
 	a.scheduler.Unsubscribe(identifier)
 }
 
@@ -84,19 +114,19 @@ func (a PubSub) Unsubscribe(identifier SubscriberIdentifier) {
 // loop.
 //
 // It will send a nil error in the callback's function's error chans.
-func (a PubSub) UnsubscribeAll() {
+func (a *PubSub) UnsubscribeAll() {
 	a.scheduler.UnsubscribeAll()
 }
 
 // Publish sends a message to the message broker.
-func (a PubSub) Publish(msg interface{}) error {
+func (a *PubSub) Publish(msg interface{}) error {
 	a.backlog <- msg
 	return nil
 }
 
 // ListenAsync starts the relay goroutine which uses the provided driver
 // to communicate with the message broker.
-func (a PubSub) ListenAsync() chan error {
+func (a *PubSub) ListenAsync() chan error {
 
 	errCh := make(chan error, 1)
 
@@ -109,7 +139,7 @@ func (a PubSub) ListenAsync() chan error {
 
 // ListenSync starts relay loops which use the provided driver to
 // communicate with the message broker.
-func (a PubSub) ListenSync() error {
+func (a *PubSub) ListenSync() error {
 
 	defer a.scheduler.UnsubscribeAll()
 
@@ -205,7 +235,7 @@ func (a PubSub) ListenSync() error {
 // be released.
 //
 // Subscribers will be unsubscribed was well.
-func (a PubSub) Terminate() error {
+func (a *PubSub) Terminate() error {
 
 	// send single termination signal for
 	// blocking driver

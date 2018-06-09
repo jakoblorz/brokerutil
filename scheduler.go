@@ -25,5 +25,7 @@ type scheduler interface {
 }
 
 func newScheduler() scheduler {
-	return newRoundRobinScheduler()
+	sc := newRoundRobinScheduler()
+
+	return &sc
 }
