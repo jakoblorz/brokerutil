@@ -57,7 +57,7 @@ func TestPubSubDriver_GetDriverFlags(t *testing.T) {
 
 		for _, f := range d.GetDriverFlags() {
 
-			if reflect.DeepEqual(f, brokerutil.RequiresConcurrentExecution) {
+			if reflect.DeepEqual(f, brokerutil.ConcurrentExecution) {
 				return
 			}
 		}

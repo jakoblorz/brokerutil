@@ -47,7 +47,7 @@ func (p *PubSubDriver) getSyncedClient() sarama.Client {
 // GetDriverFlags returns flags which indicate the capabilites
 // and execution plan
 func (p *PubSubDriver) GetDriverFlags() []brokerutil.Flag {
-	return []brokerutil.Flag{brokerutil.RequiresConcurrentExecution}
+	return []brokerutil.Flag{brokerutil.ConcurrentExecution}
 }
 
 // OpenStream initializes the communication channels
